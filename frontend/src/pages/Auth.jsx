@@ -93,7 +93,9 @@ const Auth = () => {
                 }
             } else {
                 await register(name, email, password);
-                navigate('/');
+                setIsLogin(true);
+                // Optionally clear password so they have to type it again or just let them click login
+                setPassword('');
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Authentication failed. Please try again.');

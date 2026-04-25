@@ -35,6 +35,8 @@ app.use('/api/users', require('./routes/authRoutes')); // Reusing authRoutes for
 app.use('/api/groups', require('./routes/groupRoutes'));
 app.use('/api/expenses', require('./routes/expenseRoutes'));
 app.use('/api/invitations', require('./routes/invitationRoutes'));
+app.use('/api/settlements', require('./routes/settlementRoutes'));
+app.use('/api/delete-requests', require('./routes/deleteRequestRoutes'));
 
 // Basic testing route
 app.get('/', (req, res) => res.send('API is running'));

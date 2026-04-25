@@ -1,5 +1,6 @@
 const Expense = require('../models/Expense');
 const Group = require('../models/Group');
+const DeleteRequest = require('../models/DeleteRequest');
 const { calculateSettlements } = require('../utils/settlement');
 
 // ──────────────────────────────────────────────
@@ -67,19 +68,58 @@ const addExpense = async (req, res) => {
 // ──────────────────────────────────────────────
 const deleteExpense = async (req, res) => {
     try {
-        const expense = await Expense.findById(req.params.id);
+        const expense = await Expense.findById(req.params.id).populate('paidBy', 'name');
         if (!expense) return res.status(404).json({ message: 'Expense not found' });
 
-        if (expense.paidBy.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ message: 'Not authorized to delete this expense' });
+        const group = await Group.findById(expense.group);
+        if (!group) return res.status(404).json({ message: 'Group not found' });
+
+        // Ensure user is the group leader
+        if (group.creator.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Only the Group Leader can delete transactions.' });
         }
 
-        const groupId = expense.group.toString();
-        await Expense.findByIdAndDelete(req.params.id);
+        if (expense.title && expense.title.startsWith('Settlement:')) {
+            return res.status(400).json({ message: 'The settlement is done so that entry can not be deleted.' });
+        }
 
-        req.io.to(groupId).emit('expense_deleted', req.params.id);
+        const subsequentSettlement = await Expense.findOne({
+            group: expense.group,
+            title: { $regex: '^Settlement:' },
+            createdAt: { $gt: expense.createdAt }
+        });
 
-        res.json({ message: 'Expense removed' });
+        if (subsequentSettlement) {
+            return res.status(400).json({ message: 'Transaction already settled can not deleted' });
+        }
+
+        // If the leader is the one who paid for it, delete immediately
+        if (expense.paidBy._id.toString() === req.user._id.toString()) {
+            await Expense.findByIdAndDelete(req.params.id);
+            req.io.to(group._id.toString()).emit('expense_deleted', req.params.id);
+            return res.json({ message: 'Expense removed' });
+        }
+
+        // Otherwise, the leader is deleting someone else's transaction. Request permission.
+        const existing = await DeleteRequest.findOne({ expense: expense._id, status: 'pending' });
+        if (existing) {
+            return res.status(400).json({ message: 'A delete request for this transaction is already pending approval.' });
+        }
+
+        const deleteRequest = await DeleteRequest.create({
+            group: group._id,
+            leader: req.user._id,
+            targetUser: expense.paidBy._id,
+            expense: expense._id
+        });
+
+        const popRequest = await DeleteRequest.findById(deleteRequest._id)
+            .populate('leader', 'name')
+            .populate('expense', 'title amount date');
+
+        req.io.to(group._id.toString()).emit('new_delete_request', popRequest);
+
+        res.status(202).json({ message: `Deletion permission requested from ${expense.paidBy.name}.`, pending: true });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -102,11 +142,11 @@ const getInsights = async (req, res) => {
         // ── 1. Category spend: this month vs last month ──
         const [thisMonthData, lastMonthData] = await Promise.all([
             Expense.aggregate([
-                { $match: { group: require('mongoose').Types.ObjectId.createFromHexString(groupId), date: { $gte: thisMonthStart } } },
+                { $match: { group: require('mongoose').Types.ObjectId.createFromHexString(groupId), date: { $gte: thisMonthStart }, title: { $not: /^Settlement:/ } } },
                 { $group: { _id: '$category', total: { $sum: '$amount' } } }
             ]),
             Expense.aggregate([
-                { $match: { group: require('mongoose').Types.ObjectId.createFromHexString(groupId), date: { $gte: lastMonthStart, $lte: lastMonthEnd } } },
+                { $match: { group: require('mongoose').Types.ObjectId.createFromHexString(groupId), date: { $gte: lastMonthStart, $lte: lastMonthEnd }, title: { $not: /^Settlement:/ } } },
                 { $group: { _id: '$category', total: { $sum: '$amount' } } }
             ])
         ]);
@@ -148,7 +188,7 @@ const getInsights = async (req, res) => {
 
         // ── 2. Highest spending weekday ──
         const weekdayAgg = await Expense.aggregate([
-            { $match: { group: require('mongoose').Types.ObjectId.createFromHexString(groupId) } },
+            { $match: { group: require('mongoose').Types.ObjectId.createFromHexString(groupId), title: { $not: /^Settlement:/ } } },
             {
                 $group: {
                     _id: { $dayOfWeek: '$date' }, // 1 = Sunday, 7 = Saturday
@@ -167,7 +207,7 @@ const getInsights = async (req, res) => {
 
         // ── 3. Saving suggestion from top category ──
         const allTimeCategories = await Expense.aggregate([
-            { $match: { group: require('mongoose').Types.ObjectId.createFromHexString(groupId) } },
+            { $match: { group: require('mongoose').Types.ObjectId.createFromHexString(groupId), title: { $not: /^Settlement:/ } } },
             { $group: { _id: '$category', total: { $sum: '$amount' } } },
             { $sort: { total: -1 } }
         ]);
@@ -231,7 +271,7 @@ const getWeeklyVsMonthly = async (req, res) => {
 
         const sumFor = async (start, end) => {
             const result = await Expense.aggregate([
-                { $match: { group: gid, date: { $gte: start, ...(end ? { $lte: end } : {}) } } },
+                { $match: { group: gid, date: { $gte: start, ...(end ? { $lte: end } : {}) }, title: { $not: /^Settlement:/ } } },
                 { $group: { _id: null, total: { $sum: '$amount' } } }
             ]);
             return result[0]?.total || 0;
@@ -268,7 +308,7 @@ const getSpendingTrend = async (req, res) => {
         thirtyDaysAgo.setHours(0, 0, 0, 0);
 
         const trend = await Expense.aggregate([
-            { $match: { group: gid, date: { $gte: thirtyDaysAgo } } },
+            { $match: { group: gid, date: { $gte: thirtyDaysAgo }, title: { $not: /^Settlement:/ } } },
             {
                 $group: {
                     _id: {
@@ -312,7 +352,7 @@ const getTopCategories = async (req, res) => {
         const gid = mongoose.Types.ObjectId.createFromHexString(groupId);
 
         const categories = await Expense.aggregate([
-            { $match: { group: gid } },
+            { $match: { group: gid, title: { $not: /^Settlement:/ } } },
             { $group: { _id: '$category', total: { $sum: '$amount' } } },
             { $sort: { total: -1 } },
             { $limit: 5 }

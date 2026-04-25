@@ -40,6 +40,12 @@ const acceptInvitation = async (req, res) => {
             receiverName: req.user.name
         });
 
+        // Notify entire group
+        req.io.to(group._id.toString()).emit('member_added', {
+            groupId: group._id,
+            user: { _id: req.user._id, name: req.user.name }
+        });
+
         res.json({ message: 'Invitation accepted successfully', group });
     } catch (error) {
         res.status(500).json({ message: error.message });

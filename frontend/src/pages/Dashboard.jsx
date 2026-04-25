@@ -8,6 +8,7 @@ import ExpenseList from '../components/ExpenseList';
 import ExpenseModal from '../components/ExpenseModal';
 import AddMemberModal from '../components/AddMemberModal';
 import SettlementView from '../components/SettlementView';
+import SettlementHistory from '../components/SettlementHistory';
 import SmartInsights from '../components/SmartInsights';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import VoiceExpenseEntry from '../components/VoiceExpenseEntry';
@@ -25,39 +26,64 @@ const Dashboard = () => {
     const [currentGroup, setCurrentGroup] = useState(null);
     const [expenses, setExpenses] = useState([]);
     const [balances, setBalances] = useState([]);
+    const [settlementRequests, setSettlementRequests] = useState([]);
     const [showExpenseModal, setShowExpenseModal] = useState(false);
     const [showAddMemberModal, setShowAddMemberModal] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [showExportMenu, setShowExportMenu] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     const unreadCount = notifications.filter(n => !n.read).length;
 
     useEffect(() => {
         if (!user) return;
-        const fetchInvitations = async () => {
+        const fetchUserData = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const { data } = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/invitations`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                const inviteNotifs = data.map(inv => ({
-                    id: inv._id,
-                    inviteId: inv._id,
-                    isInvite: true,
+                const [invRes, delReqRes] = await Promise.all([
+                    axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/invitations`, { headers: { Authorization: `Bearer ${token}` } }),
+                    axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/delete-requests/pending`, { headers: { Authorization: `Bearer ${token}` } })
+                ]);
+
+                const inviteNotifs = invRes.data.map(inv => ({
+                    id: inv._id, inviteId: inv._id, isInvite: true,
                     message: `${inv.sender?.name || 'Someone'} invited you to join ${inv.group?.name}`,
-                    time: new Date(inv.createdAt),
-                    read: false
+                    time: new Date(inv.createdAt), read: false
                 }));
+
+                const delReqNotifs = delReqRes.data.map(req => ({
+                    id: req._id, delReqId: req._id, isDelReq: true,
+                    message: `${req.leader?.name} wants to delete your expense "${req.expense?.title}" in ${req.group?.name || 'the group'}.`,
+                    time: new Date(req.createdAt), read: false
+                }));
+
                 // Only add if not already in state
-                setNotifications(prev => [...inviteNotifs, ...prev.filter(n => !n.isInvite)]);
+                setNotifications(prev => [...inviteNotifs, ...delReqNotifs, ...prev.filter(n => !n.isInvite && !n.isDelReq)]);
             } catch (error) {
-                console.error('Failed to fetch invitations', error);
+                console.error('Failed to fetch user data', error);
             }
         };
-        fetchInvitations();
+        fetchUserData();
     }, [user]);
+
+    const handleAcceptDeleteReq = async (id) => {
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/delete-requests/${id}/accept`, {}, { headers: { Authorization: `Bearer ${token}` } });
+            setNotifications(prev => prev.filter(n => n.delReqId !== id));
+        } catch (error) { alert("Failed to accept"); }
+    };
+
+    const handleRejectDeleteReq = async (id) => {
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/delete-requests/${id}/reject`, {}, { headers: { Authorization: `Bearer ${token}` } });
+            setNotifications(prev => prev.filter(n => n.delReqId !== id));
+        } catch (error) { alert("Failed to reject"); }
+    };
 
     useEffect(() => {
         if (!user || !socket) return;
@@ -136,14 +162,18 @@ const Dashboard = () => {
     }, [darkMode]);
 
     const refreshCurrentGroup = async () => {
+        setIsRefreshing(true);
         try {
             const token = localStorage.getItem('token');
             const { data } = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/groups/${currentGroup._id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setCurrentGroup(data);
+            setRefreshKey(prev => prev + 1);
         } catch (error) {
             console.error('Failed to refresh group', error);
+        } finally {
+            setIsRefreshing(false);
         }
     };
 
@@ -158,6 +188,11 @@ const Dashboard = () => {
                 });
                 setExpenses(data.expenses);
                 setBalances(data.balances);
+
+                const settlementsRes = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/settlements/group/${currentGroup._id}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setSettlementRequests(settlementsRes.data);
             } catch (error) {
                 console.error('Failed to fetch group expenses', error);
             }
@@ -197,22 +232,118 @@ const Dashboard = () => {
                     read: false
                 }, ...prev]);
             });
+
+            socket.on('new_settlement_request', (req) => {
+                setSettlementRequests(prev => [req, ...prev.filter(r => r._id !== req._id)]);
+                if (req.receiver._id === user?._id) {
+                    setNotifications(prev => [{
+                        id: req._id + Date.now().toString(),
+                        message: `${req.payer?.name} sent a settlement request for Rs. ${req.amount}`,
+                        time: new Date(),
+                        read: false
+                    }, ...prev]);
+                }
+            });
+
+            socket.on('settlement_accepted', (req) => {
+                fetchGroupData();
+            });
+
+            socket.on('settlement_rejected', (req) => {
+                setSettlementRequests(prev => prev.map(r => r._id === req._id ? req : r));
+                if (req.payer._id === user?._id) {
+                    setNotifications(prev => [{
+                        id: req._id + Date.now().toString(),
+                        message: `${req.receiver?.name} rejected your settlement request.`,
+                        time: new Date(),
+                        read: false
+                    }, ...prev]);
+                }
+            });
+
+            socket.on('new_delete_request', (req) => {
+                if (req.targetUser === user?._id || req.targetUser._id === user?._id) {
+                    setNotifications(prev => [{
+                        id: req._id, delReqId: req._id, isDelReq: true,
+                        message: `${req.leader?.name || 'Leader'} wants to delete your expense "${req.expense?.title}".`,
+                        time: new Date(), read: false
+                    }, ...prev]);
+                }
+            });
+
+            socket.on('delete_request_accepted', (req) => {
+                if (req.leader === user?._id || req.leader._id === user?._id) {
+                    setNotifications(prev => [{
+                        id: req._id + Date.now().toString(),
+                        message: `${req.targetUser?.name || 'User'} accepted your deletion request.`,
+                        time: new Date(), read: false
+                    }, ...prev]);
+                }
+            });
+
+            socket.on('delete_request_rejected', (req) => {
+                if (req.leader === user?._id || req.leader._id === user?._id) {
+                    setNotifications(prev => [{
+                        id: req._id + Date.now().toString(),
+                        message: `${req.targetUser?.name || 'User'} rejected your deletion request.`,
+                        time: new Date(), read: false
+                    }, ...prev]);
+                }
+            });
+
+            socket.on('member_added', (data) => {
+                if (currentGroup._id === data.groupId) {
+                    refreshCurrentGroup();
+                }
+            });
+
+            socket.on('user_left', (data) => {
+                if (currentGroup._id === data.groupId) {
+                    refreshCurrentGroup();
+                }
+            });
         }
 
         return () => {
             if (socket) {
                 socket.off('new_expense');
                 socket.off('expense_deleted');
+                socket.off('new_settlement_request');
+                socket.off('settlement_accepted');
+                socket.off('settlement_rejected');
+                socket.off('new_delete_request');
+                socket.off('delete_request_accepted');
+                socket.off('delete_request_rejected');
+                socket.off('member_added');
+                socket.off('user_left');
             }
         };
     }, [currentGroup, user, socket]);
 
+    const handleLeaveGroup = async () => {
+        if (!window.confirm("Are you sure you want to leave this group?")) return;
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/groups/${currentGroup._id}/leave`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setCurrentGroup(null);
+            alert("You have successfully left the group.");
+            window.location.reload();
+        } catch (error) {
+            alert(error.response?.data?.message || 'Failed to leave group');
+        }
+    };
+
     const handleDeleteExpense = async (id) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/expenses/${id}`, {
+            const res = await axios.delete(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/expenses/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
+            if (res.status === 202) {
+                alert(res.data.message);
+            }
             // Update handled by socket event 
         } catch (error) {
             alert(error.response?.data?.message || 'Failed to delete expense');
@@ -220,17 +351,62 @@ const Dashboard = () => {
     };
 
     const exportCSV = () => {
-        const headers = ['Title', 'Amount', 'Category', 'Paid By', 'Date'];
-        const csvContent = [
-            headers.join(','),
-            ...expenses.map(e => [
-                `"${e.title.replace(/"/g, '""')}"`,
-                e.amount,
-                `"${e.category}"`,
-                `"${e.paidBy?.name || 'Unknown'}"`,
-                `"${new Date(e.date).toLocaleDateString()}"`
-            ].join(','))
+        // ── 1. Expenses Table ──
+        const expenseHeaders = ['Title', 'Amount', 'Category', 'Paid By', 'Date'];
+
+        // Exclude all settlement entries
+        const originalExpenses = expenses.filter(e => !e.title?.startsWith('Settlement:'));
+
+        const expenseRows = originalExpenses.map(e => [
+            `"${e.title.replace(/"/g, '""')}"`,
+            e.amount,
+            `"${e.category}"`,
+            `"${e.paidBy?.name || 'Unknown'}"`,
+            `"${new Date(e.date).toLocaleDateString()}"`
+        ].join(','));
+
+        const expenseContent = [
+            '--- EXPENSES ---',
+            expenseHeaders.join(','),
+            ...expenseRows
         ].join('\n');
+
+        // ── 2. Settlements/Balances Table ──
+        const memberStats = {};
+        if (currentGroup && currentGroup.members) {
+            currentGroup.members.forEach(m => {
+                memberStats[m._id] = { name: m.name, totalGive: 0, totalCollect: 0, details: [] };
+            });
+        }
+
+        balances.forEach(b => {
+            const amount = Number(b.amount).toFixed(2);
+            if (memberStats[b.from._id]) {
+                memberStats[b.from._id].totalGive += Number(b.amount);
+                memberStats[b.from._id].details.push(`Give $${amount} to ${b.to.name}`);
+            }
+            if (memberStats[b.to._id]) {
+                memberStats[b.to._id].totalCollect += Number(b.amount);
+                memberStats[b.to._id].details.push(`Collect $${amount} from ${b.from.name}`);
+            }
+        });
+
+        const balanceHeaders = ['Member Name', 'Amount to Give', 'Amount to Collect', 'Respective Names'];
+        const balanceRows = Object.values(memberStats).map(stats => [
+            `"${stats.name.replace(/"/g, '""')}"`,
+            stats.totalGive.toFixed(2),
+            stats.totalCollect.toFixed(2),
+            `"${stats.details.join(' | ').replace(/"/g, '""')}"`
+        ].join(','));
+
+        const balanceContent = [
+            '--- SETTLEMENTS & BALANCES ---',
+            balanceHeaders.join(','),
+            ...balanceRows
+        ].join('\n');
+
+        // Combine both tables with space
+        const csvContent = expenseContent + '\n\n\n' + balanceContent;
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
@@ -367,6 +543,14 @@ const Dashboard = () => {
                                                             </button>
                                                         </div>
                                                     )}
+                                                    {notification.isDelReq && (
+                                                        <div className="mt-3 flex space-x-2">
+                                                            <button onClick={() => handleAcceptDeleteReq(notification.delReqId)}
+                                                                className="px-3 py-1 bg-teal-500 hover:bg-teal-600 text-white text-xs font-medium rounded-lg transition-colors">Approve</button>
+                                                            <button onClick={() => handleRejectDeleteReq(notification.delReqId)}
+                                                                className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium rounded-lg border border-red-200">Reject</button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))
                                         ) : (
@@ -408,8 +592,8 @@ const Dashboard = () => {
                                 </div>
                                 <div>
                                     <div className="flex flex-wrap gap-3 mt-4 items-center">
-                                        <button onClick={refreshCurrentGroup} className="btn-outline flex items-center hover-lift border-indigo-200 text-indigo-600 dark:border-indigo-800 dark:text-indigo-400">
-                                            <Activity className="w-5 h-5 mr-2" /> Refresh
+                                        <button onClick={refreshCurrentGroup} disabled={isRefreshing} className="btn-outline flex items-center hover-lift border-indigo-200 text-indigo-600 dark:border-indigo-800 dark:text-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <Activity className={`w-5 h-5 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} /> {isRefreshing ? 'Refreshing...' : 'Refresh'}
                                         </button>
 
                                         <div className="relative">
@@ -442,6 +626,7 @@ const Dashboard = () => {
                                             )}
                                         </div>
 
+
                                         <button onClick={() => setShowAddMemberModal(true)} className="btn-outline flex items-center hover-lift">
                                             <UserPlus className="w-5 h-5 mr-2" /> Add Member
                                         </button>
@@ -461,7 +646,7 @@ const Dashboard = () => {
                                             <Activity className="w-6 h-6 mr-3 text-primary-500" />
                                             Recent Transactions
                                         </h3>
-                                        <ExpenseList expenses={expenses} onDelete={handleDeleteExpense} />
+                                        <ExpenseList expenses={expenses.filter(e => !e.title?.startsWith('Settlement:'))} onDelete={handleDeleteExpense} currentGroup={currentGroup} />
                                     </div>
                                 </div>
 
@@ -472,17 +657,19 @@ const Dashboard = () => {
                                             <IndianRupee className="w-6 h-6 mr-3 text-indigo-500" />
                                             Settlements
                                         </h3>
-                                        <SettlementView balances={balances} />
+                                        <SettlementView balances={balances} settlementRequests={settlementRequests} groupId={currentGroup._id} />
                                     </div>
 
+                                    <SettlementHistory expenses={expenses} />
+
                                     {/* 💡 Smart Insights */}
-                                    <SmartInsights groupId={currentGroup._id} />
+                                    <SmartInsights key={`insights-${refreshKey}`} groupId={currentGroup._id} />
                                 </div>
                             </div>
 
                             {/* ── Bottom Row: Advanced Analytics Dashboard ── */}
                             <div className="card p-6 neon-border border-purple-500/30">
-                                <AnalyticsDashboard groupId={currentGroup._id} />
+                                <AnalyticsDashboard key={`analytics-${refreshKey}`} groupId={currentGroup._id} />
                             </div>
                         </div>
                     ) : (
