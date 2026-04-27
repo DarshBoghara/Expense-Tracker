@@ -1,5 +1,6 @@
 const DeleteRequest = require('../models/DeleteRequest');
 const Expense = require('../models/Expense');
+const { logAudit } = require('../utils/auditLogger');
 
 // Get all pending delete requests for the logged in user
 const getPendingRequests = async (req, res) => {
@@ -54,6 +55,25 @@ const acceptDeleteRequest = async (req, res) => {
 
         req.io.to(request.group.toString()).emit('delete_request_accepted', request);
 
+        await logAudit(req, {
+            groupId: request.group,
+            actorId: req.user._id,
+            targetUserId: request.leader,
+            entityType: 'delete_request',
+            actionType: 'delete_approved',
+            actionDetails: { notes: 'Delete request approved' }
+        });
+
+        if (request.expense) {
+            await logAudit(req, {
+                groupId: request.group,
+                actorId: req.user._id,
+                entityType: 'expense',
+                actionType: 'expense_deleted',
+                actionDetails: { amount: request.expense.amount, oldValues: { title: request.expense.title } }
+            });
+        }
+
         res.json({ message: 'Transaction deleted successfully.' });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -80,6 +100,15 @@ const rejectDeleteRequest = async (req, res) => {
         await request.save();
 
         req.io.to(request.group.toString()).emit('delete_request_rejected', request);
+
+        await logAudit(req, {
+            groupId: request.group,
+            actorId: req.user._id,
+            targetUserId: request.leader,
+            entityType: 'delete_request',
+            actionType: 'delete_rejected',
+            actionDetails: { notes: 'Delete request rejected' }
+        });
 
         res.json({ message: 'Deletion request rejected.' });
     } catch (error) {

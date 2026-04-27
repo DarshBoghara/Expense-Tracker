@@ -3,6 +3,7 @@ const router = express.Router();
 const {
     getGroupExpenses,
     addExpense,
+    editExpense,
     deleteExpense,
     getInsights,
     getWeeklyVsMonthly,
@@ -14,7 +15,7 @@ const { protect } = require('../middleware/authMiddleware');
 // ── Existing routes ──────────────────────────
 router.route('/').post(protect, addExpense);
 router.route('/group/:groupId').get(protect, getGroupExpenses);
-router.route('/:id').delete(protect, deleteExpense);
+router.route('/:id').put(protect, editExpense).delete(protect, deleteExpense);
 
 // ── New Analytics routes ─────────────────────
 router.route('/insights/:groupId').get(protect, getInsights);

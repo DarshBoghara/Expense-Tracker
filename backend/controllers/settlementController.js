@@ -1,6 +1,7 @@
 const SettlementRequest = require('../models/SettlementRequest');
 const Expense = require('../models/Expense');
 const Group = require('../models/Group');
+const { logAudit } = require('../utils/auditLogger');
 
 // Get all pending and history settlements for a group
 const getGroupSettlements = async (req, res) => {
@@ -49,6 +50,15 @@ const createSettlementRequest = async (req, res) => {
         const fullRequest = await SettlementRequest.findById(newRequest._id)
             .populate('payer', 'name avatar')
             .populate('receiver', 'name avatar');
+
+        await logAudit(req, {
+            groupId,
+            actorId: req.user._id,
+            targetUserId: receiverId,
+            entityType: 'settlement',
+            actionType: 'settlement_requested',
+            actionDetails: { amount, notes: 'Settlement requested' }
+        });
 
         // Emit real-time event
         req.io.to(groupId).emit('new_settlement_request', fullRequest);
@@ -99,6 +109,15 @@ const acceptSettlement = async (req, res) => {
             .populate('paidBy', 'name avatar')
             .populate('splits.user', 'name avatar');
             
+        await logAudit(req, {
+            groupId: request.group,
+            actorId: req.user._id,
+            targetUserId: request.payer._id,
+            entityType: 'settlement',
+            actionType: 'settlement_approved',
+            actionDetails: { amount: request.amount, notes: 'Settlement approved' }
+        });
+
         // Notify everyone
         req.io.to(request.group.toString()).emit('settlement_accepted', request);
         req.io.to(request.group.toString()).emit('new_expense', fullExpense);
@@ -128,6 +147,15 @@ const rejectSettlement = async (req, res) => {
 
         request.status = 'rejected';
         await request.save();
+
+        await logAudit(req, {
+            groupId: request.group,
+            actorId: req.user._id,
+            targetUserId: request.payer,
+            entityType: 'settlement',
+            actionType: 'settlement_rejected',
+            actionDetails: { amount: request.amount, notes: 'Settlement rejected' }
+        });
 
         req.io.to(request.group.toString()).emit('settlement_rejected', request);
 

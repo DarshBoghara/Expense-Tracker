@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, UserPlus, Mail, Lock, User, Eye, EyeOff, ShieldCheck, RefreshCw, ArrowLeft } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 
 /* ─── OTP Input Component ──────────────────────────────────────────────── */
 const OTPInput = ({ otp, setOtp }) => {
@@ -68,7 +69,7 @@ const Auth = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const { login, verifyOTP, resendOTP, register } = useAuth();
+    const { login, googleLogin, verifyOTP, resendOTP, register } = useAuth();
     const navigate = useNavigate();
 
     // Countdown timer for resend
@@ -143,6 +144,23 @@ const Auth = () => {
         setOtp('');
         setError('');
         setResendMsg('');
+    };
+
+    const handleGoogleSuccess = async (credentialResponse) => {
+        setError('');
+        setLoading(true);
+        try {
+            await googleLogin(credentialResponse.credential);
+            navigate('/');
+        } catch (err) {
+            setError(err.response?.data?.message || 'Google authentication failed.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleError = () => {
+        setError('Google Login was unsuccessful. Try again later.');
     };
 
     /* ── Shared background ── */
@@ -264,6 +282,22 @@ const Auth = () => {
                                     <><UserPlus className="w-5 h-5 mr-2" /> Create Account</>
                                 )}
                             </button>
+                            <div className="relative my-6">
+                                <div className="absolute inset-0 flex items-center">
+                                    <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
+                                </div>
+                                <div className="relative flex justify-center text-sm">
+                                    <span className="px-2 bg-white dark:bg-dark-card text-gray-500">Or continue with</span>
+                                </div>
+                            </div>
+                            <div className="flex justify-center">
+                                <GoogleLogin
+                                    onSuccess={handleGoogleSuccess}
+                                    onError={handleGoogleError}
+                                    theme="filled_blue"
+                                    shape="pill"
+                                />
+                            </div>
                         </form>
                     )}
 

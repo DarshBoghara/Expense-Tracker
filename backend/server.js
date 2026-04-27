@@ -37,6 +37,7 @@ app.use('/api/expenses', require('./routes/expenseRoutes'));
 app.use('/api/invitations', require('./routes/invitationRoutes'));
 app.use('/api/settlements', require('./routes/settlementRoutes'));
 app.use('/api/delete-requests', require('./routes/deleteRequestRoutes'));
+app.use('/api/audit-logs', require('./routes/auditRoutes'));
 
 // Basic testing route
 app.get('/', (req, res) => res.send('API is running'));
@@ -49,6 +50,12 @@ io.on('connection', (socket) => {
     socket.on('join_group', (groupId) => {
         socket.join(groupId);
         console.log(`User joined group: ${groupId}`);
+    });
+
+    // Join admin group room
+    socket.on('join_admin_group', (groupId) => {
+        socket.join(`admin_${groupId}`);
+        console.log(`Admin joined group: admin_${groupId}`);
     });
 
     // Join personal user room based on user ID

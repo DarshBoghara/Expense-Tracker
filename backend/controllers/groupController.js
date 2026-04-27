@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Invitation = require('../models/Invitation');
 const Expense = require('../models/Expense');
 const { calculateSettlements } = require('../utils/settlement');
+const { logAudit } = require('../utils/auditLogger');
 
 const createGroup = async (req, res) => {
     const { name, description, members } = req.body;
@@ -19,6 +20,14 @@ const createGroup = async (req, res) => {
             description,
             creator: req.user._id,
             members: groupMembers
+        });
+
+        await logAudit(req, {
+            groupId: group._id,
+            actorId: req.user._id,
+            entityType: 'group',
+            actionType: 'group_created',
+            actionDetails: { notes: `Group "${name}" created` }
         });
 
         res.status(201).json(group);
@@ -83,6 +92,15 @@ const addMemberToGroup = async (req, res) => {
         // Notify receiver
         req.io.to(userId.toString()).emit('new_invitation', popInvitation);
         
+        await logAudit(req, {
+            groupId: group._id,
+            actorId: req.user._id,
+            targetUserId: userId,
+            entityType: 'invitation',
+            actionType: 'invitation_sent',
+            actionDetails: { notes: 'Invitation sent to user' }
+        });
+
         res.json({ message: 'Invitation sent successfully', invitation });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -138,6 +156,14 @@ const leaveGroup = async (req, res) => {
         if (req.io) {
             req.io.to(group._id.toString()).emit('user_left', { userId, groupId: group._id });
         }
+
+        await logAudit(req, {
+            groupId: group._id,
+            actorId: req.user._id,
+            entityType: 'member',
+            actionType: 'user_left_group',
+            actionDetails: { notes: 'User left the group voluntarily' }
+        });
 
         res.json({ message: 'Successfully left the group.' });
 

@@ -23,6 +23,9 @@ const registerUser = async (req, res) => {
         const userExists = await User.findOne({ email });
 
         if (userExists) {
+            if (userExists.authProvider === 'google') {
+                return res.status(400).json({ message: 'This email is registered via Google. Please use the "Continue with Google" button.' });
+            }
             return res.status(400).json({ message: 'User already exists' });
         }
 
@@ -46,6 +49,10 @@ const authUser = async (req, res) => {
 
     try {
         const user = await User.findOne({ email });
+
+        if (user && user.authProvider === 'google') {
+            return res.status(400).json({ message: 'This email is registered via Google. Please use the "Continue with Google" button.' });
+        }
 
         if (!user || !(await user.matchPassword(password))) {
             return res.status(401).json({ message: 'Invalid email or password' });
@@ -244,4 +251,47 @@ const changePassword = async (req, res) => {
     }
 };
 
-module.exports = { registerUser, authUser, verifyOTP, resendOTP, getUserProfile, getAllUsers, searchUsers, changePassword };
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID');
+
+// ─── Google Login ────────────────────────────────────────────────────────────
+const googleLogin = async (req, res) => {
+    const { credential } = req.body;
+    try {
+        const ticket = await client.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID', 
+            // NOTE: Replace 'YOUR_CLIENT_ID' or set GOOGLE_CLIENT_ID in your .env file
+        });
+        const payload = ticket.getPayload();
+        const { email, name, picture } = payload;
+
+        let user = await User.findOne({ email });
+
+        if (!user) {
+            // Create a new user with a random password since they logged in via Google
+            const randomPassword = crypto.randomBytes(16).toString('hex');
+            user = await User.create({
+                name,
+                email,
+                password: randomPassword,
+                avatar: picture || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+                authProvider: 'google'
+            });
+        }
+
+        // Return JWT token (bypassing OTP for Google Login)
+        res.json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            avatar: user.avatar,
+            token: generateToken(user._id),
+        });
+    } catch (error) {
+        console.error('Google login error:', error);
+        res.status(401).json({ message: 'Invalid Google token. Please configure your GOOGLE_CLIENT_ID.' });
+    }
+};
+
+module.exports = { registerUser, authUser, verifyOTP, resendOTP, getUserProfile, getAllUsers, searchUsers, changePassword, googleLogin };

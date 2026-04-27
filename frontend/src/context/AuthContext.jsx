@@ -71,8 +71,19 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
+    const googleLogin = async (credential) => {
+        const { data } = await axios.post(`${API}/api/auth/google`, { credential });
+        localStorage.setItem('token', data.token);
+        // Fetch full profile (includes createdAt) instead of using JWT payload
+        const profileRes = await axios.get(`${API}/api/auth/profile`, {
+            headers: { Authorization: `Bearer ${data.token}` }
+        });
+        setUser(profileRes.data);
+        return data;
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, verifyOTP, resendOTP, register, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, googleLogin, verifyOTP, resendOTP, register, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );

@@ -9,11 +9,13 @@ const {
     getAllUsers,
     searchUsers,
     changePassword,
+    googleLogin,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
 router.post('/register', registerUser);
 router.post('/login', authUser);         // Step 1: validate credentials → send OTP
+router.post('/google', googleLogin);     // Google OAuth Login
 router.post('/verify-otp', verifyOTP);  // Step 2: verify OTP → return JWT
 router.post('/resend-otp', resendOTP);  // Resend OTP
 router.get('/profile', protect, getUserProfile);

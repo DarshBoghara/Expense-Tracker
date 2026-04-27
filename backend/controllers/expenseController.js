@@ -30,6 +30,8 @@ const getGroupExpenses = async (req, res) => {
     }
 };
 
+const { logAudit } = require('../utils/auditLogger');
+
 // ──────────────────────────────────────────────
 // Existing: Add expense
 // ──────────────────────────────────────────────
@@ -55,9 +57,81 @@ const addExpense = async (req, res) => {
             .populate('paidBy', 'name avatar')
             .populate('splits.user', 'name avatar');
 
+        // Log the audit
+        await logAudit(req, {
+            groupId,
+            actorId: req.user._id,
+            entityType: 'expense',
+            entityId: expense._id,
+            actionType: 'expense_created',
+            actionDetails: {
+                newValues: { title, category, splitType, notes },
+                amount,
+                notes
+            }
+        });
+
         req.io.to(groupId).emit('new_expense', fullExpense);
 
         res.status(201).json(fullExpense);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// ──────────────────────────────────────────────
+// NEW: Edit expense
+// ──────────────────────────────────────────────
+const editExpense = async (req, res) => {
+    const { title, amount, category, splits, notes, splitType, paidBy } = req.body;
+    
+    try {
+        const expense = await Expense.findById(req.params.id);
+        if (!expense) return res.status(404).json({ message: 'Expense not found' });
+
+        const group = await Group.findById(expense.group);
+        if (!group) return res.status(404).json({ message: 'Group not found' });
+
+        if (expense.title && expense.title.startsWith('Settlement:')) {
+            return res.status(400).json({ message: 'Settlements cannot be edited.' });
+        }
+
+        const oldAmount = expense.amount;
+        const oldTitle = expense.title;
+        const oldCategory = expense.category;
+
+        expense.title = title || expense.title;
+        expense.amount = amount || expense.amount;
+        expense.category = category || expense.category;
+        expense.notes = notes || expense.notes;
+        expense.splitType = splitType || expense.splitType;
+        if (paidBy) expense.paidBy = paidBy;
+        if (splits) expense.splits = splits;
+
+        await expense.save();
+
+        const fullExpense = await Expense.findById(expense._id)
+            .populate('paidBy', 'name avatar')
+            .populate('splits.user', 'name avatar');
+
+        // Log the audit
+        await logAudit(req, {
+            groupId: expense.group,
+            actorId: req.user._id,
+            entityType: 'expense',
+            entityId: expense._id,
+            actionType: 'expense_updated',
+            actionDetails: {
+                oldValues: { amount: oldAmount, title: oldTitle, category: oldCategory },
+                newValues: { amount: expense.amount, title: expense.title, category: expense.category },
+                amount: expense.amount,
+                notes: 'Expense updated'
+            }
+        });
+
+        req.io.to(expense.group.toString()).emit('expense_updated', fullExpense);
+
+        res.json(fullExpense);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -95,7 +169,23 @@ const deleteExpense = async (req, res) => {
 
         // If the leader is the one who paid for it, delete immediately
         if (expense.paidBy._id.toString() === req.user._id.toString()) {
+            const amount = expense.amount;
+            const title = expense.title;
             await Expense.findByIdAndDelete(req.params.id);
+            
+            // Delete all previous logs related to this expense
+            const AuditLog = require('../models/AuditLog');
+            await AuditLog.deleteMany({ entityId: req.params.id });
+
+            await logAudit(req, {
+                groupId: group._id,
+                actorId: req.user._id,
+                entityType: 'expense',
+                entityId: req.params.id,
+                actionType: 'expense_deleted',
+                actionDetails: { amount, oldValues: { title } }
+            });
+            
             req.io.to(group._id.toString()).emit('expense_deleted', req.params.id);
             return res.json({ message: 'Expense removed' });
         }
@@ -116,6 +206,15 @@ const deleteExpense = async (req, res) => {
         const popRequest = await DeleteRequest.findById(deleteRequest._id)
             .populate('leader', 'name')
             .populate('expense', 'title amount date');
+
+        await logAudit(req, {
+            groupId: group._id,
+            actorId: req.user._id,
+            targetUserId: expense.paidBy._id,
+            entityType: 'delete_request',
+            actionType: 'expense_delete_requested',
+            actionDetails: { amount: expense.amount, oldValues: { title: expense.title } }
+        });
 
         req.io.to(group._id.toString()).emit('new_delete_request', popRequest);
 
@@ -367,6 +466,7 @@ const getTopCategories = async (req, res) => {
 module.exports = {
     getGroupExpenses,
     addExpense,
+    editExpense,
     deleteExpense,
     // Analytics
     getInsights,

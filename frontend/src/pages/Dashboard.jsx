@@ -12,7 +12,8 @@ import SettlementHistory from '../components/SettlementHistory';
 import SmartInsights from '../components/SmartInsights';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import VoiceExpenseEntry from '../components/VoiceExpenseEntry';
-import { LogOut, Users, Plus, PieChart as PieChartIcon, Activity, IndianRupee, UserPlus, Bell, Sun, Moon, Download, FileText, FileSpreadsheet } from 'lucide-react';
+import AdminConsole from '../components/AdminConsole';
+import { LogOut, Users, Plus, PieChart as PieChartIcon, Activity, IndianRupee, UserPlus, Bell, Sun, Moon, Download, FileText, FileSpreadsheet, Shield } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -35,6 +36,7 @@ const Dashboard = () => {
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
+    const [showAdminConsole, setShowAdminConsole] = useState(false);
 
     const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -633,6 +635,11 @@ const Dashboard = () => {
                                         <button onClick={() => setShowExpenseModal(true)} className="btn-primary flex items-center hover-lift">
                                             <Plus className="w-5 h-5 mr-2" /> Add Expense
                                         </button>
+                                        {(currentGroup.creator === user?._id || currentGroup.admins?.includes(user?._id)) && (
+                                            <button onClick={() => setShowAdminConsole(true)} className="btn-outline flex items-center hover-lift border-orange-200 text-orange-600 dark:border-orange-800 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/10">
+                                                <Shield className="w-5 h-5 mr-2" /> Admin Controls
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -652,15 +659,19 @@ const Dashboard = () => {
 
                                 {/* Right Column: Settlements + Smart Insights */}
                                 <div className="space-y-6">
-                                    <div className="card p-6 neon-border border-indigo-500/30">
-                                        <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-6 flex items-center text-lg">
-                                            <IndianRupee className="w-6 h-6 mr-3 text-indigo-500" />
-                                            Settlements
-                                        </h3>
-                                        <SettlementView balances={balances} settlementRequests={settlementRequests} groupId={currentGroup._id} />
-                                    </div>
+                                    {currentGroup.members.length > 1 && (
+                                        <>
+                                            <div className="card p-6 neon-border border-indigo-500/30">
+                                                <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-6 flex items-center text-lg">
+                                                    <IndianRupee className="w-6 h-6 mr-3 text-indigo-500" />
+                                                    Settlements
+                                                </h3>
+                                                <SettlementView balances={balances} settlementRequests={settlementRequests} groupId={currentGroup._id} />
+                                            </div>
 
-                                    <SettlementHistory expenses={expenses} />
+                                            <SettlementHistory expenses={expenses} />
+                                        </>
+                                    )}
 
                                     {/* 💡 Smart Insights */}
                                     <SmartInsights key={`insights-${refreshKey}`} groupId={currentGroup._id} />
@@ -713,6 +724,13 @@ const Dashboard = () => {
                         setShowAddMemberModal(false);
                         refreshCurrentGroup();
                     }}
+                />
+            )}
+
+            {showAdminConsole && (
+                <AdminConsole
+                    groupId={currentGroup._id}
+                    onClose={() => setShowAdminConsole(false)}
                 />
             )}
         </div>

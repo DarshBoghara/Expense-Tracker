@@ -1,5 +1,6 @@
 const Invitation = require('../models/Invitation');
 const Group = require('../models/Group');
+const { logAudit } = require('../utils/auditLogger');
 
 const getPendingInvitations = async (req, res) => {
     try {
@@ -46,6 +47,23 @@ const acceptInvitation = async (req, res) => {
             user: { _id: req.user._id, name: req.user.name }
         });
 
+        await logAudit(req, {
+            groupId: group._id,
+            actorId: req.user._id,
+            targetUserId: invitation.sender._id,
+            entityType: 'invitation',
+            actionType: 'invitation_accepted',
+            actionDetails: { notes: 'User accepted invitation and joined group' }
+        });
+
+        await logAudit(req, {
+            groupId: group._id,
+            actorId: req.user._id,
+            entityType: 'member',
+            actionType: 'member_added',
+            actionDetails: { notes: 'User joined group via invitation' }
+        });
+
         res.json({ message: 'Invitation accepted successfully', group });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -72,6 +90,15 @@ const rejectInvitation = async (req, res) => {
             groupId: invitation.group._id,
             groupName: invitation.group.name,
             receiverName: req.user.name
+        });
+
+        await logAudit(req, {
+            groupId: invitation.group._id,
+            actorId: req.user._id,
+            targetUserId: invitation.sender._id,
+            entityType: 'invitation',
+            actionType: 'invitation_rejected',
+            actionDetails: { notes: 'User rejected invitation' }
         });
 
         res.json({ message: 'Invitation rejected successfully' });
