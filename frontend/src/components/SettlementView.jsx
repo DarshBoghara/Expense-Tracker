@@ -122,7 +122,7 @@ const SettlementView = ({ balances, settlementRequests = [], groupId }) => {
                                             }`}>
                                             {isUserPayer ? 'You' : settlement.from.name}
                                         </span>
-                                        <span className="text-gray-400 dark:text-gray-500 mx-1.5">gives</span>
+                                        <span className="text-gray-400 dark:text-gray-500 mx-1.5">Owes</span>
                                         <span className={`font-semibold ${isUserPayer || isUserReceiver
                                             ? 'text-gray-800 dark:text-gray-100'
                                             : 'text-gray-700 dark:text-gray-300'
