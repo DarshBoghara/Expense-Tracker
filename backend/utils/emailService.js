@@ -1,18 +1,69 @@
-const { Resend } = require('resend');
+const { google } = require('googleapis');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// ============================================================================
+// Gmail API Configuration
+// ============================================================================
+
+// These credentials will be set in your .env file
+const CLIENT_ID = process.env.GMAIL_CLIENT_ID;
+const CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET;
+const REDIRECT_URI = process.env.GMAIL_REDIRECT_URI || 'https://developers.google.com/oauthplayground';
+const REFRESH_TOKEN = process.env.GMAIL_REFRESH_TOKEN;
+const EMAIL_USER = process.env.EMAIL_USER; // The Gmail address sending the emails
+
+// Initialize the OAuth2 client
+const oAuth2Client = new google.auth.OAuth2(
+  CLIENT_ID,
+  CLIENT_SECRET,
+  REDIRECT_URI
+);
+
+// Set the refresh token. 
+// The refresh token allows our server to continuously generate new short-lived access tokens
+// without manual user intervention, ensuring the backend can always send emails.
+if (REFRESH_TOKEN) {
+    oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+}
 
 /**
- * Sends a 6-digit OTP to the given email address.
+ * Creates a raw base64url encoded email string required by the Gmail API.
+ * The Gmail API doesn't accept normal text/HTML directly; it requires a standard MIME message encoded in base64url.
+ */
+const createEmail = (to, subject, htmlContent) => {
+  // Encode subject to handle special characters correctly
+  const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
+  
+  const messageParts = [
+    `From: FriendExpense Security <${EMAIL_USER}>`,
+    `To: ${to}`,
+    'Content-Type: text/html; charset=utf-8',
+    'MIME-Version: 1.0',
+    `Subject: ${utf8Subject}`,
+    '',
+    htmlContent,
+  ];
+  const message = messageParts.join('\n');
+  
+  // The Gmail API requires a base64url encoded string (replace + with -, / with _, remove padding =)
+  return Buffer.from(message)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+};
+
+/**
+ * Sends a 6-digit OTP to the given email address using the Gmail REST API.
  * @param {string} to - Recipient email
  * @param {string} otp - 6 digit OTP code
  */
 const sendOTPEmail = async (to, otp) => {
-  const { error } = await resend.emails.send({
-    from: 'FriendExpense <onboarding@resend.dev>',
-    to: [process.env.RESEND_VERIFIED_EMAIL || to], // Free tier: only sends to verified email
-    subject: `🔐 OTP for ${to} - FriendExpense Login`,
-    html: `
+  try {
+    // 1. Get the Gmail API instance authenticated with our OAuth2 client
+    const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
+
+    // 2. Create the HTML content (Modern UI for OTP)
+    const htmlContent = `
             <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 520px; margin: 0 auto; background: #0f172a; border-radius: 16px; overflow: hidden;">
                 <div style="background: linear-gradient(135deg, #14b8a6, #3b82f6); padding: 32px; text-align: center;">
                     <div style="width: 64px; height: 64px; background: rgba(255,255,255,0.2); border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px;">
@@ -35,14 +86,35 @@ const sendOTPEmail = async (to, otp) => {
                     <p style="color: #334155; font-size: 11px; margin: 0;">© 2026 FriendExpense. All rights reserved.</p>
                 </div>
             </div>
-        `,
-  });
+        `;
 
-  if (error) {
-    throw new Error(error.message);
+    // 3. Encode the email into the required base64url format
+    const encodedMessage = createEmail(to, '🔐 Your FriendExpense Login OTP', htmlContent);
+
+    // 4. Send the email via Gmail API
+    // The special user 'me' refers to the authenticated user (EMAIL_USER)
+    console.log(`[Gmail API] Attempting to send OTP email to ${to}...`);
+    
+    const result = await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: {
+        raw: encodedMessage,
+      },
+    });
+
+    console.log(`[Gmail API] Success! Message ID: ${result.data.id}`);
+    return result.data;
+  } catch (error) {
+    console.error('[Gmail API] Error sending email:', error.message);
+    
+    // Log specific Google API errors to help with debugging
+    if (error.response && error.response.data && error.response.data.error) {
+        console.error('[Gmail API] Detailed Error:', JSON.stringify(error.response.data.error, null, 2));
+    }
+    
+    // Throw the error so the caller (authController) can handle it if needed
+    throw error;
   }
 };
-
-
 
 module.exports = { sendOTPEmail };
