@@ -10,8 +10,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const sendOTPEmail = async (to, otp) => {
   const { error } = await resend.emails.send({
     from: 'FriendExpense <onboarding@resend.dev>',
-    to: [to],
-    subject: '🔐 Your FriendExpense Login OTP',
+    to: [process.env.RESEND_VERIFIED_EMAIL || to], // Free tier: only sends to verified email
+    subject: `🔐 OTP for ${to} - FriendExpense Login`,
     html: `
             <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 520px; margin: 0 auto; background: #0f172a; border-radius: 16px; overflow: hidden;">
                 <div style="background: linear-gradient(135deg, #14b8a6, #3b82f6); padding: 32px; text-align: center;">
