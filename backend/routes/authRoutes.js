@@ -3,8 +3,6 @@ const router = express.Router();
 const {
     registerUser,
     authUser,
-    verifyOTP,
-    resendOTP,
     getUserProfile,
     getAllUsers,
     searchUsers,
@@ -15,10 +13,8 @@ const {
 const { protect } = require('../middleware/authMiddleware');
 
 router.post('/register', registerUser);
-router.post('/login', authUser);         // Step 1: validate credentials → send OTP
+router.post('/login', authUser);         // Login
 router.post('/google', googleLogin);     // Google OAuth Login
-router.post('/verify-otp', verifyOTP);  // Step 2: verify OTP → return JWT
-router.post('/resend-otp', resendOTP);  // Resend OTP
 router.get('/profile', protect, getUserProfile);
 router.put('/profile/avatar', protect, updateAvatar); // Update profile avatar
 router.put('/change-password', protect, changePassword); // Change password (authenticated)
