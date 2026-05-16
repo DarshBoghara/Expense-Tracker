@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -105,15 +105,30 @@ const Toast = ({ type, message }) => {
 };
 
 /* ─── Avatar Ring ────────────────────────────────────────────────────────── */
-const AvatarRing = ({ initials }) => (
-    <div className="relative w-28 h-28 flex-shrink-0">
+const AvatarRing = ({ initials, avatar, onAvatarClick, uploading }) => (
+    <div className="relative w-28 h-28 flex-shrink-0 cursor-pointer group" onClick={onAvatarClick}>
         {/* Animated ring */}
         <div className="absolute inset-0 rounded-full bg-gradient-to-br from-teal-400 via-blue-500 to-indigo-600 animate-spin-slow p-[3px]">
             <div className="w-full h-full rounded-full bg-white dark:bg-slate-900" />
         </div>
         {/* Static inner gradient avatar */}
-        <div className="absolute inset-[4px] rounded-full bg-gradient-to-br from-teal-400 to-blue-600 flex items-center justify-center shadow-lg">
-            <span className="text-white font-extrabold text-3xl tracking-tight select-none">{initials}</span>
+        <div className="absolute inset-[4px] rounded-full bg-gradient-to-br from-teal-400 to-blue-600 flex items-center justify-center shadow-lg overflow-hidden">
+            {avatar && avatar !== 'https://cdn-icons-png.flaticon.com/512/149/149071.png' ? (
+                <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+                <span className="text-white font-extrabold text-3xl tracking-tight select-none">{initials}</span>
+            )}
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <span className="text-white text-xs font-semibold">Change</span>
+            </div>
+            {uploading && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                    <svg className="animate-spin w-6 h-6 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                </div>
+            )}
         </div>
         {/* Online dot */}
         <div className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 rounded-full border-[3px] border-white dark:border-slate-900 shadow-md z-10">
@@ -155,8 +170,10 @@ const InfoRow = ({ icon, label, value, accent, isDark }) => (
 
 /* ─── Main Profile Page ──────────────────────────────────────────────────── */
 const Profile = () => {
-    const { user, logout } = useAuth();
+    const { user, setUser, logout } = useAuth();
     const navigate = useNavigate();
+    const fileInputRef = useRef(null);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
     const [isDark, setIsDark] = useState(() => {
         return document.documentElement.classList.contains('dark');
@@ -184,6 +201,37 @@ const Profile = () => {
     const showToast = (type, message) => {
         setToast({ type, message });
         setTimeout(() => setToast({ type: '', message: '' }), 4000);
+    };
+
+    const handleAvatarChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 2 * 1024 * 1024) { // 2MB limit
+            return showToast('error', 'Image size should be less than 2MB.');
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+            const base64String = reader.result;
+            setUploadingAvatar(true);
+            try {
+                const token = localStorage.getItem('token');
+                const { data } = await axios.put(
+                    `${API}/api/auth/profile/avatar`,
+                    { avatar: base64String },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                
+                setUser((prev) => ({ ...prev, avatar: data.avatar }));
+                showToast('success', 'Profile picture updated successfully!');
+            } catch (err) {
+                showToast('error', 'Failed to update profile picture.');
+            } finally {
+                setUploadingAvatar(false);
+            }
+        };
+        reader.readAsDataURL(file);
     };
 
     const handleChangePassword = async (e) => {
@@ -316,7 +364,19 @@ const Profile = () => {
 
                     <div className="flex flex-col sm:flex-row items-center sm:items-start gap-7">
                         {/* Avatar with ring */}
-                        <AvatarRing initials={initials} />
+                        <AvatarRing 
+                            initials={initials} 
+                            avatar={user?.avatar} 
+                            onAvatarClick={() => fileInputRef.current?.click()} 
+                            uploading={uploadingAvatar} 
+                        />
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleAvatarChange}
+                            accept="image/*"
+                            className="hidden"
+                        />
 
                         {/* User Info */}
                         <div className="flex-1 text-center sm:text-left">

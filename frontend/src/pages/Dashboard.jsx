@@ -482,8 +482,12 @@ const Dashboard = () => {
                             title="View Profile"
                             className="flex items-center space-x-3 group cursor-pointer"
                         >
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-teal-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg shadow-glow group-hover:shadow-[0_0_20px_rgba(20,184,166,0.5)] transition-all duration-300 ring-2 ring-transparent group-hover:ring-teal-400/50">
-                                {user?.name?.charAt(0)}
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-teal-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg shadow-glow group-hover:shadow-[0_0_20px_rgba(20,184,166,0.5)] transition-all duration-300 ring-2 ring-transparent group-hover:ring-teal-400/50 overflow-hidden">
+                                {user?.avatar && user.avatar !== 'https://cdn-icons-png.flaticon.com/512/149/149071.png' ? (
+                                    <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+                                ) : (
+                                    user?.name?.charAt(0)
+                                )}
                             </div>
                             <div className="hidden md:block">
                                 <h1 className="text-2xl font-bold gradient-text leading-tight">FriendExpense</h1>

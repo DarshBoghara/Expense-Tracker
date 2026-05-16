@@ -294,4 +294,32 @@ const googleLogin = async (req, res) => {
     }
 };
 
-module.exports = { registerUser, authUser, verifyOTP, resendOTP, getUserProfile, getAllUsers, searchUsers, changePassword, googleLogin };
+// ─── Update Avatar ───────────────────────────────────────────────────────────
+const updateAvatar = async (req, res) => {
+    const { avatar } = req.body;
+    try {
+        if (!avatar) {
+            return res.status(400).json({ message: 'Avatar image is required.' });
+        }
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+        
+        user.avatar = avatar;
+        await user.save({ validateBeforeSave: false });
+        
+        res.json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            avatar: user.avatar,
+            createdAt: user.createdAt,
+        });
+    } catch (error) {
+        console.error('Update avatar error:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+module.exports = { registerUser, authUser, verifyOTP, resendOTP, getUserProfile, getAllUsers, searchUsers, changePassword, googleLogin, updateAvatar };
