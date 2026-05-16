@@ -257,7 +257,7 @@ const AdminConsole = ({ groupId, onClose }) => {
                                 </div>
 
                                 <div className="mt-8">
-                                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-4 text-sm uppercase tracking-wider">Most Active Members</h4>
+                                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-4 text-sm uppercase tracking-wider">Highest Spenders</h4>
                                     <div className="space-y-3">
                                         {stats.mostActiveMembers?.map((member, idx) => (
                                             <div key={member._id} className="flex items-center justify-between bg-white dark:bg-dark-card p-3 rounded-lg border border-gray-100 dark:border-gray-800">

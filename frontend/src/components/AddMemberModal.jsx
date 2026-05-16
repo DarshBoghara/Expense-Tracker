@@ -116,15 +116,15 @@ const AddMemberModal = ({ group, onClose, onMemberAdded }) => {
                     style={{ boxShadow: '0 24px 60px rgba(0,0,0,0.35)' }}>
 
                     {/* ── Header ── */}
-                    <div className="relative px-6 pt-6 pb-5 border-b border-slate-100 dark:border-slate-800">
+                    <div className="relative px-6 pt-6 pb-5 border-b border-gray-100 dark:border-gray-800">
                         <div className="flex items-center gap-4">
-                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-400 to-blue-500 flex items-center justify-center shadow-md flex-shrink-0">
-                                <UserPlus className="w-5 h-5 text-white" />
+                            <div className="w-11 h-11 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700 flex-shrink-0 shadow-sm">
+                                <UserPlus className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                             </div>
                             <div>
-                                <h2 className="text-lg font-bold text-slate-800 dark:text-white">Invite Member</h2>
-                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                                    Search to find and invite someone to <span className="font-semibold text-teal-500">{group.name}</span>
+                                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Invite Member</h2>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                    Search to invite someone to <span className="font-semibold text-gray-700 dark:text-gray-300">{group.name}</span>
                                 </p>
                             </div>
                         </div>
@@ -151,20 +151,14 @@ const AddMemberModal = ({ group, onClose, onMemberAdded }) => {
 
                         {/* Search input */}
                         <div className="relative">
-                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                             <input
                                 ref={inputRef}
                                 type="text"
                                 value={query}
                                 onChange={handleQueryChange}
                                 placeholder="Search by name or email…"
-                                className="w-full pl-10 pr-10 py-3 rounded-xl text-sm font-medium outline-none transition-all duration-200 border-2
-                                    bg-slate-50 dark:bg-slate-800/80
-                                    border-slate-200 dark:border-slate-700
-                                    text-slate-800 dark:text-white
-                                    placeholder-slate-400 dark:placeholder-slate-500
-                                    focus:border-teal-500 dark:focus:border-teal-500
-                                    focus:bg-white dark:focus:bg-slate-800"
+                                className="w-full pl-10 pr-10 py-3 rounded-xl text-sm font-medium outline-none transition-all duration-200 border-2 bg-gray-50 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:border-gray-900 dark:focus:border-gray-400 focus:bg-white dark:focus:bg-gray-800"
                             />
                             {query && (
                                 <button
@@ -225,15 +219,15 @@ const AddMemberModal = ({ group, onClose, onMemberAdded }) => {
                                                     onClick={() => setSelectedUser(isSelected ? null : u)}
                                                     className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all duration-200 group border-2
                                                         ${isSelected
-                                                            ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20'
-                                                            : 'border-transparent bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                                            ? 'border-gray-900 bg-gray-100 dark:border-white dark:bg-gray-800'
+                                                            : 'border-transparent bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-700'
                                                         }`}
                                                 >
                                                     {/* Avatar */}
-                                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-sm
+                                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-sm border border-gray-200 dark:border-gray-700
                                                         ${isSelected
-                                                            ? 'bg-gradient-to-br from-teal-400 to-blue-500'
-                                                            : 'bg-gradient-to-br from-slate-400 to-slate-500 dark:from-slate-600 dark:to-slate-700'
+                                                            ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                                                            : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-300'
                                                         }`}>
                                                         {initials(u.name)}
                                                     </div>
@@ -256,7 +250,7 @@ const AddMemberModal = ({ group, onClose, onMemberAdded }) => {
                                                     {/* Checkmark */}
                                                     <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200
                                                         ${isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}>
-                                                        <CheckCircle className="w-5 h-5 text-teal-500" />
+                                                        <CheckCircle className="w-5 h-5 text-gray-900 dark:text-white" />
                                                     </div>
                                                 </button>
                                             </li>
@@ -268,15 +262,15 @@ const AddMemberModal = ({ group, onClose, onMemberAdded }) => {
 
                         {/* Selected user preview */}
                         {selectedUser && (
-                            <div className="flex items-center gap-3 p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800/50 animate-slideDown">
-                                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-teal-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                            <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 animate-slideDown">
+                                <div className="w-8 h-8 rounded-xl bg-gray-900 text-white dark:bg-white dark:text-gray-900 flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-sm">
                                     {initials(selectedUser.name)}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-teal-700 dark:text-teal-300 truncate">{selectedUser.name}</p>
-                                    <p className="text-xs text-teal-600/70 dark:text-teal-400/70 truncate">{selectedUser.email}</p>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{selectedUser.name}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{selectedUser.email}</p>
                                 </div>
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/40 px-2 py-1 rounded-lg">Selected</span>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-2 py-1 rounded-lg">Selected</span>
                             </div>
                         )}
 
@@ -301,7 +295,7 @@ const AddMemberModal = ({ group, onClose, onMemberAdded }) => {
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                            className="flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                         >
                             Cancel
                         </button>
@@ -309,8 +303,7 @@ const AddMemberModal = ({ group, onClose, onMemberAdded }) => {
                             type="button"
                             onClick={handleInvite}
                             disabled={!selectedUser || sending || status.type === 'success'}
-                            className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                            style={{ background: !selectedUser ? undefined : 'linear-gradient(135deg, #14b8a6, #3b82f6)' }}
+                            className={`flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${!selectedUser ? 'bg-gray-300 text-gray-500 dark:bg-gray-800 dark:text-gray-500' : 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'}`}
                         >
                             {sending ? (
                                 <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</>

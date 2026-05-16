@@ -20,8 +20,8 @@ const InsightCard = ({ text, index }) => {
 
     return (
         <div
-            className={`flex items-start gap-3 p-4 rounded-xl border bg-gradient-to-br ${gradient} backdrop-blur-sm
-                        transition-all duration-500 hover:-translate-y-0.5 hover:shadow-lg`}
+            className={`flex items-start gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30
+                        transition-all duration-300 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-sm`}
             style={{ animationDelay: `${index * 100}ms` }}
         >
             <span className="text-2xl flex-shrink-0 mt-0.5" role="img">{emoji}</span>
@@ -41,26 +41,38 @@ const InsightSkeleton = () => (
     </>
 );
 
-const SmartInsights = ({ groupId }) => {
+const SmartInsights = ({ groupId, className = '' }) => {
     const [insights, setInsights] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
+    const [error, setError] = useState(null);
 
-    const fetchInsights = useCallback(async (isRefresh = false) => {
-        if (isRefresh) setRefreshing(true);
-        else setLoading(true);
+    const fetchInsights = useCallback(async (forceRefresh = false) => {
+        if (!groupId) return;
+
+        if (forceRefresh) {
+            setRefreshing(true);
+        } else {
+            setLoading(true);
+        }
         setError(null);
 
         try {
             const token = localStorage.getItem('token');
-            const { data } = await axios.get(`${API}/api/expenses/insights/${groupId}`, {
+            const url = `${API}/api/expenses/insights/${groupId}${forceRefresh ? '?refresh=true' : ''}`;
+
+            const response = await axios.get(url, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setInsights(data.insights || []);
+
+            if (response.data?.insights) {
+                setInsights(response.data.insights);
+            } else {
+                setInsights([]);
+            }
         } catch (err) {
-            setError('Could not load insights. Please try again.');
-            console.error('SmartInsights error:', err);
+            console.error('Failed to fetch insights:', err);
+            setError(err.response?.data?.message || 'Failed to generate insights. Please try again.');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -72,15 +84,14 @@ const SmartInsights = ({ groupId }) => {
     }, [fetchInsights]);
 
     return (
-        <div className="card p-6 neon-border border-yellow-500/30">
+        <div className={`card p-6 flex flex-col min-h-0 ${className}`}>
             {/* Header */}
             <div className="flex items-center justify-between mb-5">
-                <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2 text-lg">
-                    <span className="text-xl">💡</span>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 uppercase tracking-wider">
+                    <span className="text-lg">💡</span>
                     Smart Insights
-                    <span className="ml-2 text-xs font-normal px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30
-                                     text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800">
-                        AI Powered
+                    <span className="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-gray-900 text-white dark:bg-white dark:text-gray-900 uppercase tracking-widest">
+                        AI
                     </span>
                 </h3>
                 <button
@@ -103,7 +114,7 @@ const SmartInsights = ({ groupId }) => {
             </div>
 
             {/* Content */}
-            <div className="space-y-3">
+            <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-[200px]">
                 {loading ? (
                     <InsightSkeleton />
                 ) : error ? (

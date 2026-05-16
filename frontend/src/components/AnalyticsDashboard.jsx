@@ -28,13 +28,17 @@ const rupeeFmt = (v) => `₹${Number(v).toLocaleString('en-IN')}`;
 
 // ── Section card wrapper ───────────────────────────────────
 const ChartCard = ({ title, icon, children, loading }) => (
-    <div className="card p-5 hover-lift">
-        <h4 className="font-semibold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2 text-sm uppercase tracking-wide">
-            <span>{icon}</span> {title}
+    <div className="bg-white dark:bg-[#111111] p-6 rounded-3xl border border-gray-200 dark:border-gray-800/60 shadow-sm transition-all hover:shadow-md hover:border-gray-300 dark:hover:border-gray-700 relative overflow-hidden flex flex-col">
+        <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2 text-xs uppercase tracking-widest shrink-0">
+            <span className="text-gray-400 dark:text-gray-500">{icon}</span> {title}
         </h4>
         {loading ? (
-            <div className="h-52 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
-        ) : children}
+            <div className="flex-1 rounded-2xl bg-gray-100 dark:bg-gray-800/50 animate-pulse min-h-[200px]" />
+        ) : (
+            <div className="flex-1 min-h-[200px]">
+                {children}
+            </div>
+        )}
     </div>
 );
 
@@ -46,7 +50,7 @@ const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, perc
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
     if (percent < 0.05) return null;
     return (
-        <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight={600}>
+        <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={700}>
             {`${(percent * 100).toFixed(0)}%`}
         </text>
     );
@@ -96,86 +100,95 @@ const AnalyticsDashboard = ({ groupId }) => {
     const trendTickFormatter = (_, index) => (index % 5 === 0 ? trend[index]?.date || '' : '');
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-6">
             {/* Section header */}
-            <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg flex items-center gap-2">
-                    <span>📊</span> Advanced Analytics
-                </h3>
-                <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30
-                                 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                    Last 30 days
-                </span>
+            <div className="flex items-center justify-between mb-2 px-2">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-gray-900 dark:bg-white flex items-center justify-center shadow-md shrink-0">
+                        <span className="text-xl">📊</span>
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+                            Advanced Analytics
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">Comprehensive financial breakdown</p>
+                    </div>
+                </div>
+                <div className="text-[10px] font-bold px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 uppercase tracking-widest shadow-sm">
+                    Last 30 Days
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
 
                 {/* ── Chart 1: Bar — Weekly vs Monthly ─────── */}
-                <ChartCard title="Weekly vs Monthly Spending" icon="📊" loading={loading}>
-                    {barData.every(d => d.amount === 0) ? (
-                        <div className="h-52 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
-                            No data for comparison yet
-                        </div>
-                    ) : (
-                        <div className="h-52">
+                <div className="xl:col-span-2 flex flex-col">
+                    <ChartCard title="Period Comparison" icon="⚖️" loading={loading}>
+                        {barData.every(d => d.amount === 0) ? (
+                            <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm font-medium">
+                                No data for comparison
+                            </div>
+                        ) : (
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={barData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
+                                <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.15)" />
                                     <XAxis
                                         dataKey="period"
-                                        tick={{ fontSize: 11, fill: '#94a3b8' }}
+                                        tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }}
                                         axisLine={false}
                                         tickLine={false}
+                                        dy={10}
                                     />
                                     <YAxis
                                         tickFormatter={(v) => `₹${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`}
-                                        tick={{ fontSize: 10, fill: '#94a3b8' }}
+                                        tick={{ fontSize: 11, fill: '#64748b', fontWeight: 500 }}
                                         axisLine={false}
                                         tickLine={false}
-                                        width={48}
+                                        dx={-10}
                                     />
-                                    <Tooltip formatter={rupeeFmt} {...tooltipStyle} />
-                                    <Bar dataKey="amount" name="Amount" radius={[6, 6, 0, 0]}>
+                                    <Tooltip formatter={rupeeFmt} cursor={{fill: 'rgba(148,163,184,0.05)'}} {...tooltipStyle} />
+                                    <Bar dataKey="amount" name="Amount" radius={[6, 6, 0, 0]} barSize={40}>
                                         {barData.map((_, i) => (
                                             <Cell key={i} fill={COLORS[i % COLORS.length]} />
                                         ))}
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
-                        </div>
-                    )}
-                </ChartCard>
+                        )}
+                    </ChartCard>
+                </div>
 
                 {/* ── Chart 2: Area — Spending Trend ───────── */}
-                <ChartCard title="30-Day Spending Trend" icon="📈" loading={loading}>
-                    {trend.every(d => d.total === 0) ? (
-                        <div className="h-52 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
-                            No spending data in the last 30 days
-                        </div>
-                    ) : (
-                        <div className="h-52">
+                <div className="xl:col-span-2 flex flex-col">
+                    <ChartCard title="Spending Trend" icon="📈" loading={loading}>
+                        {trend.every(d => d.total === 0) ? (
+                            <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm font-medium">
+                                No spending data
+                            </div>
+                        ) : (
                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={trend} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                <AreaChart data={trend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.4} />
                                             <stop offset="95%" stopColor="#14b8a6" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.15)" />
                                     <XAxis
                                         dataKey="date"
                                         tickFormatter={trendTickFormatter}
-                                        tick={{ fontSize: 10, fill: '#94a3b8' }}
+                                        tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }}
                                         axisLine={false}
                                         tickLine={false}
+                                        dy={10}
                                     />
                                     <YAxis
                                         tickFormatter={(v) => `₹${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`}
-                                        tick={{ fontSize: 10, fill: '#94a3b8' }}
+                                        tick={{ fontSize: 11, fill: '#64748b', fontWeight: 500 }}
                                         axisLine={false}
                                         tickLine={false}
-                                        width={48}
+                                        dx={-10}
                                     />
                                     <Tooltip formatter={rupeeFmt} labelFormatter={(l) => `Date: ${l}`} {...tooltipStyle} />
                                     <Area
@@ -183,115 +196,126 @@ const AnalyticsDashboard = ({ groupId }) => {
                                         dataKey="total"
                                         name="Spent"
                                         stroke="#14b8a6"
-                                        strokeWidth={2.5}
+                                        strokeWidth={3}
                                         fill="url(#trendGradient)"
                                         dot={false}
-                                        activeDot={{ r: 5, fill: '#14b8a6', stroke: '#fff', strokeWidth: 2 }}
+                                        activeDot={{ r: 6, fill: '#14b8a6', stroke: '#fff', strokeWidth: 3 }}
                                     />
                                 </AreaChart>
                             </ResponsiveContainer>
-                        </div>
-                    )}
-                </ChartCard>
+                        )}
+                    </ChartCard>
+                </div>
 
                 {/* ── Chart 3: Pie — Top Categories ────────── */}
-                <ChartCard title="Top Categories" icon="🥧" loading={loading}>
-                    {categories.length === 0 ? (
-                        <div className="h-52 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
-                            No category data yet
-                        </div>
-                    ) : (
-                        <div className="h-52 flex items-center gap-4">
-                            <ResponsiveContainer width="60%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={categories}
-                                        dataKey="value"
-                                        nameKey="name"
-                                        innerRadius={45}
-                                        outerRadius={80}
-                                        paddingAngle={4}
-                                        labelLine={false}
-                                        label={renderPieLabel}
-                                    >
-                                        {categories.map((_, i) => (
-                                            <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip formatter={rupeeFmt} {...tooltipStyle} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                            {/* Legend */}
-                            <div className="flex flex-col gap-2 flex-1 overflow-hidden">
-                                {categories.map((cat, i) => (
-                                    <div key={cat.name} className="flex items-center gap-2 text-xs">
-                                        <span
-                                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                                            style={{ backgroundColor: COLORS[i % COLORS.length] }}
-                                        />
-                                        <span className="text-gray-600 dark:text-gray-300 truncate font-medium">{cat.name}</span>
-                                        <span className="ml-auto text-gray-500 dark:text-gray-400 font-mono text-xs flex-shrink-0">
-                                            {rupeeFmt(cat.value)}
-                                        </span>
-                                    </div>
-                                ))}
+                <div className="xl:col-span-2 flex flex-col">
+                    <ChartCard title="Top Categories" icon="🥧" loading={loading}>
+                        {categories.length === 0 ? (
+                            <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm font-medium">
+                                No category data
                             </div>
-                        </div>
-                    )}
-                </ChartCard>
+                        ) : (
+                            <div className="h-full flex items-center gap-6">
+                                <ResponsiveContainer width="55%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={categories}
+                                            dataKey="value"
+                                            nameKey="name"
+                                            innerRadius={50}
+                                            outerRadius={90}
+                                            paddingAngle={3}
+                                            stroke="none"
+                                            labelLine={false}
+                                            label={renderPieLabel}
+                                        >
+                                            {categories.map((_, i) => (
+                                                <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip formatter={rupeeFmt} {...tooltipStyle} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                                {/* Legend */}
+                                <div className="flex flex-col justify-center gap-3 flex-1 overflow-hidden">
+                                    {categories.map((cat, i) => (
+                                        <div key={cat.name} className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border border-transparent hover:border-gray-100 dark:hover:border-gray-800">
+                                            <span
+                                                className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
+                                                style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                                            />
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="text-gray-800 dark:text-gray-200 text-sm font-bold truncate">{cat.name}</span>
+                                                <span className="text-gray-500 dark:text-gray-400 font-mono text-xs font-semibold">
+                                                    {rupeeFmt(cat.value)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </ChartCard>
+                </div>
 
                 {/* ── Stats Row ─────────────────────────────── */}
-                {weeklyMonthly && !loading && (
-                    <div className="card p-5 flex flex-col justify-center gap-4">
-                        <h4 className="font-semibold text-gray-700 dark:text-gray-200 text-sm uppercase tracking-wide flex items-center gap-2">
-                            <span>🎯</span> Quick Stats
-                        </h4>
-                        {[
-                            {
-                                label: 'This Week vs Last',
-                                current: weeklyMonthly.weekly.thisWeek,
-                                previous: weeklyMonthly.weekly.lastWeek,
-                                color: 'teal',
-                            },
-                            {
-                                label: 'This Month vs Last',
-                                current: weeklyMonthly.monthly.thisMonth,
-                                previous: weeklyMonthly.monthly.lastMonth,
-                                color: 'indigo',
-                            },
-                        ].map(({ label, current, previous, color }) => {
-                            const diff = previous > 0 ? Math.round(((current - previous) / previous) * 100) : null;
-                            const up = diff !== null && diff > 0;
-                            return (
-                                <div key={label}>
-                                    <div className="flex justify-between items-baseline mb-1">
-                                        <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
-                                        {diff !== null && (
-                                            <span className={`text-xs font-bold ${up ? 'text-red-500' : 'text-emerald-500'}`}>
-                                                {up ? '▲' : '▼'} {Math.abs(diff)}%
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                                            <div
-                                                className={`h-full rounded-full bg-${color}-500 transition-all duration-700`}
-                                                style={{
-                                                    width: previous > 0
-                                                        ? `${Math.min(100, (current / Math.max(current, previous)) * 100)}%`
-                                                        : current > 0 ? '100%' : '0%'
-                                                }}
-                                            />
+                <div className="xl:col-span-2 flex flex-col">
+                    {weeklyMonthly && !loading ? (
+                        <div className="bg-white dark:bg-[#111111] p-6 rounded-3xl border border-gray-200 dark:border-gray-800/60 shadow-sm transition-all hover:shadow-md flex flex-col justify-center gap-6 h-full relative overflow-hidden">
+                            <h4 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 text-xs uppercase tracking-widest shrink-0">
+                                <span className="text-gray-400 dark:text-gray-500">🎯</span> Quick Stats
+                            </h4>
+                            <div className="space-y-6">
+                                {[
+                                    {
+                                        label: 'This Week vs Last',
+                                        current: weeklyMonthly.weekly.thisWeek,
+                                        previous: weeklyMonthly.weekly.lastWeek,
+                                        color: 'indigo',
+                                    },
+                                    {
+                                        label: 'This Month vs Last',
+                                        current: weeklyMonthly.monthly.thisMonth,
+                                        previous: weeklyMonthly.monthly.lastMonth,
+                                        color: 'teal',
+                                    },
+                                ].map(({ label, current, previous, color }) => {
+                                    const diff = previous > 0 ? Math.round(((current - previous) / previous) * 100) : null;
+                                    const up = diff !== null && diff > 0;
+                                    return (
+                                        <div key={label} className="group">
+                                            <div className="flex justify-between items-baseline mb-2">
+                                                <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{label}</span>
+                                                {diff !== null && (
+                                                    <span className={`text-xs font-black px-2 py-0.5 rounded-lg ${up ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'}`}>
+                                                        {up ? '▲' : '▼'} {Math.abs(diff)}%
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex-1 h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner">
+                                                    <div
+                                                        className={`h-full rounded-full bg-${color}-500 transition-all duration-1000 ease-out`}
+                                                        style={{
+                                                            width: previous > 0
+                                                                ? `${Math.min(100, (current / Math.max(current, previous)) * 100)}%`
+                                                                : current > 0 ? '100%' : '0%'
+                                                        }}
+                                                    />
+                                                </div>
+                                                <span className="text-sm font-black text-gray-900 dark:text-white w-20 text-right font-mono tracking-tight">
+                                                    {rupeeFmt(current)}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 w-20 text-right">
-                                            {rupeeFmt(current)}
-                                        </span>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-white dark:bg-[#111111] p-6 rounded-3xl border border-gray-200 dark:border-gray-800/60 shadow-sm animate-pulse h-full" />
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -10,7 +10,7 @@ const ExpenseModal = ({ group, onClose, setExpenses, setBalances }) => {
     const [category, setCategory] = useState('Other');
     const [splitType, setSplitType] = useState('Equal');
     const [paidBy, setPaidBy] = useState(user._id);
-    
+
     // Equal split simple logic
     const handleAdd = async (e) => {
         e.preventDefault();
@@ -19,14 +19,14 @@ const ExpenseModal = ({ group, onClose, setExpenses, setBalances }) => {
             user: m._id,
             amount: splitAmount
         }));
-        
+
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/expenses`, 
+            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/expenses`,
                 { title, amount, category, groupId: group._id, splits, splitType, paidBy },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            
+
             // Close the form modal smoothly. The real-time socket connection
             // will automatically update the Dashboard expenses and balances!
             onClose();
@@ -36,50 +36,54 @@ const ExpenseModal = ({ group, onClose, setExpenses, setBalances }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[500] animate-fadeIn">
-            <div className="glass-card p-8 w-full max-w-lg animate-scale shadow-neon">
-                <div className="flex items-center mb-6">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-blue-500 flex items-center justify-center mr-4">
-                        <Plus className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                        <h2 className="text-2xl font-bold gradient-text">Add New Expense</h2>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">Record your expense for {group.name}</p>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[500] animate-fadeIn p-4" onClick={onClose}>
+            <div className="bg-white dark:bg-[#111111] rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-800/60 overflow-hidden w-full max-w-md animate-scale" onClick={(e) => e.stopPropagation()}>
+                
+                {/* ── Header ── */}
+                <div className="relative px-6 pt-6 pb-5 border-b border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center gap-4">
+                        <div className="w-11 h-11 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700 flex-shrink-0 shadow-sm">
+                            <Plus className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">New Expense</h2>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Record an expense for <span className="font-semibold text-gray-700 dark:text-gray-300">{group.name}</span></p>
+                        </div>
                     </div>
                 </div>
                 <form onSubmit={handleAdd}>
-                    <div className="space-y-6">
+                    <div className="px-6 py-5 space-y-5">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                                <Tag className="w-4 h-4 mr-2" /> Expense Title
+                            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center uppercase tracking-wider">
+                                <Tag className="w-3.5 h-3.5 mr-1.5 text-gray-400" /> Expense Title
                             </label>
-                            <input 
-                                type="text" 
-                                className="input-field" 
-                                value={title} 
-                                onChange={e => setTitle(e.target.value)} 
-                                required 
-                                placeholder="e.g. Dinner at KFC" 
+                            <input
+                                type="text"
+                                className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all duration-200 border-2 bg-gray-50 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:border-gray-900 dark:focus:border-gray-400 focus:bg-white dark:focus:bg-gray-800"
+                                value={title}
+                                onChange={e => setTitle(e.target.value)}
+                                required
+                                placeholder="e.g. Dinner at KFC"
                             />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                                    <IndianRupee className="w-4 h-4 mr-2" /> Amount
+                                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center uppercase tracking-wider">
+                                    <IndianRupee className="w-3.5 h-3.5 mr-1.5 text-gray-400" /> Amount
                                 </label>
-                                <input 
-                                    type="number" 
-                                    step="0.01" 
-                                    className="input-field" 
-                                    value={amount} 
-                                    onChange={e => setAmount(e.target.value)} 
-                                    required 
-                                    placeholder="0.00" 
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all duration-200 border-2 bg-gray-50 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:border-gray-900 dark:focus:border-gray-400 focus:bg-white dark:focus:bg-gray-800"
+                                    value={amount}
+                                    onChange={e => setAmount(e.target.value)}
+                                    required
+                                    placeholder="0.00"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
-                                <select className="input-field" value={category} onChange={e => setCategory(e.target.value)}>
+                                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wider">Category</label>
+                                <select className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all duration-200 border-2 bg-gray-50 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-gray-400 focus:bg-white dark:focus:bg-gray-800" value={category} onChange={e => setCategory(e.target.value)}>
                                     <option value="Food">🍔 Food</option>
                                     <option value="Travel">✈️ Travel</option>
                                     <option value="Rent">🏠 Rent</option>
@@ -89,10 +93,10 @@ const ExpenseModal = ({ group, onClose, setExpenses, setBalances }) => {
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                                <User className="w-4 h-4 mr-2" /> Paid By
+                            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center uppercase tracking-wider">
+                                <User className="w-3.5 h-3.5 mr-1.5 text-gray-400" /> Paid By
                             </label>
-                            <select className="input-field" value={paidBy} onChange={e => setPaidBy(e.target.value)}>
+                            <select className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all duration-200 border-2 bg-gray-50 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-gray-400 focus:bg-white dark:focus:bg-gray-800" value={paidBy} onChange={e => setPaidBy(e.target.value)}>
                                 {group.members.map(m => (
                                     <option key={m._id} value={m._id}>
                                         {m._id === user._id ? 'You' : m.name}
@@ -100,10 +104,16 @@ const ExpenseModal = ({ group, onClose, setExpenses, setBalances }) => {
                                 ))}
                             </select>
                         </div>
-                        <div className="pt-6 flex justify-end space-x-3 border-t border-gray-200 dark:border-gray-700">
-                            <button type="button" onClick={onClose} className="btn-outline">Cancel</button>
-                            <button type="submit" className="btn-primary">Add Expense</button>
-                        </div>
+                    </div>
+                    
+                    {/* ── Footer ── */}
+                    <div className="px-6 pb-6 pt-2 flex gap-3">
+                        <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-md hover:shadow-lg transition-all active:scale-[0.98]">
+                            Add Expense
+                        </button>
                     </div>
                 </form>
             </div>

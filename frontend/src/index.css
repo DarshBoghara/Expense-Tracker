@@ -7,16 +7,19 @@
 @layer base {
   body {
     @apply bg-slate-50/50 text-slate-800 antialiased selection:bg-teal-500/30 font-['Plus_Jakarta_Sans'];
-    background-image: radial-gradient(at 0% 0%, hsla(160, 100%, 74%, 0.15) 0px, transparent 50%),
-                      radial-gradient(at 100% 0%, hsla(240, 100%, 80%, 0.15) 0px, transparent 50%);
+    background-image: radial-gradient(at 0% 0%, hsla(190, 100%, 80%, 0.4) 0px, transparent 50%),
+                      radial-gradient(at 100% 0%, hsla(250, 100%, 85%, 0.4) 0px, transparent 50%),
+                      radial-gradient(at 50% 100%, hsla(320, 100%, 85%, 0.3) 0px, transparent 50%);
     background-attachment: fixed;
   }
 
   /* Dark mode support */
   .dark body {
     @apply bg-dark-bg text-dark-text selection:bg-teal-500/30;
-    background-image: radial-gradient(at 0% 0%, hsla(160, 100%, 74%, 0.05) 0px, transparent 50%),
-                      radial-gradient(at 100% 0%, hsla(240, 100%, 80%, 0.05) 0px, transparent 50%);
+    background-image: radial-gradient(at 0% 0%, hsla(200, 100%, 25%, 0.15) 0px, transparent 50%),
+                      radial-gradient(at 100% 0%, hsla(260, 100%, 30%, 0.15) 0px, transparent 50%),
+                      radial-gradient(at 50% 100%, hsla(320, 100%, 25%, 0.1) 0px, transparent 50%);
+    background-attachment: fixed;
   }
 }
 

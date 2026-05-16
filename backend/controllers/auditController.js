@@ -127,7 +127,7 @@ exports.getGroupLogStats = async (req, res) => {
                 count: { $sum: 1 },
                 totalSpent: { $sum: '$amount' }
             } },
-            { $sort: { count: -1 } },
+            { $sort: { totalSpent: -1 } },
             { $limit: 5 },
             { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'user' } },
             { $unwind: '$user' },

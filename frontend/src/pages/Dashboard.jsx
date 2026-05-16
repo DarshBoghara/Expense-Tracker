@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -37,6 +37,22 @@ const Dashboard = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
     const [showAdminConsole, setShowAdminConsole] = useState(false);
+
+    const notificationRef = useRef(null);
+    const exportMenuRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+                setShowNotifications(false);
+            }
+            if (exportMenuRef.current && !exportMenuRef.current.contains(event.target)) {
+                setShowExportMenu(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -473,33 +489,33 @@ const Dashboard = () => {
     }, []);
 
     return (
-        <div className="min-h-screen w-full bg-slate-50 dark:bg-dark-bg p-4 md:p-8 transition-colors duration-300 space-y-6 animate-fadeIn">
-            <header className="glass-card p-6 animate-slideIn relative z-[100]">
+        <div className="h-screen w-full bg-gray-50 dark:bg-[#0a0a0a] p-3 md:p-5 transition-colors duration-300 flex flex-col gap-4 animate-fadeIn overflow-hidden">
+            <header className="glass-card px-6 py-3 animate-slideIn relative z-[100] shadow-sm shrink-0 flex-none border-b border-gray-200/50 dark:border-gray-800/50 bg-white/70 dark:bg-[#111111]/70 rounded-2xl">
                 <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-3">
                         <button
                             onClick={() => navigate('/profile')}
                             title="View Profile"
                             className="flex items-center space-x-3 group cursor-pointer"
                         >
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-teal-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg shadow-glow group-hover:shadow-[0_0_20px_rgba(20,184,166,0.5)] transition-all duration-300 ring-2 ring-transparent group-hover:ring-teal-400/50 overflow-hidden">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-500 to-blue-600 flex items-center justify-center text-white font-medium text-sm shadow-sm transition-all duration-300 ring-2 ring-transparent group-hover:ring-gray-200 dark:group-hover:ring-gray-700 overflow-hidden">
                                 {user?.avatar && user.avatar !== 'https://cdn-icons-png.flaticon.com/512/149/149071.png' ? (
                                     <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
                                 ) : (
                                     user?.name?.charAt(0)
                                 )}
                             </div>
-                            <div className="hidden md:block">
-                                <h1 className="text-2xl font-bold gradient-text leading-tight">FriendExpense</h1>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-teal-400 transition-colors">
-                                    Welcome back, <span className="font-medium text-gray-700 dark:text-gray-300 group-hover:text-teal-300">{user?.name}</span>
+                            <div className="hidden md:flex md:flex-col md:items-start">
+                                <h1 className="text-lg font-bold text-gray-900 dark:text-white leading-tight tracking-tight">FriendExpense</h1>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">
+                                    Welcome back, {user?.name}
                                 </p>
                             </div>
                         </button>
-                        <h1 className="text-2xl font-bold gradient-text leading-tight md:hidden">FriendExpense</h1>
+                        <h1 className="text-lg font-bold text-gray-900 dark:text-white leading-tight md:hidden tracking-tight">FriendExpense</h1>
                     </div>
                     <div className="flex items-center space-x-4">
-                        <div className="relative">
+                        <div className="relative" ref={notificationRef}>
                             <button
                                 onClick={() => setShowNotifications(!showNotifications)}
                                 className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -582,109 +598,114 @@ const Dashboard = () => {
                 </div>
             </header>
 
-            <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-140px)]">
                 <Sidebar currentGroup={currentGroup} setCurrentGroup={setCurrentGroup} />
 
-                <div className="flex-1 glass-card h-[calc(100vh-140px)] overflow-y-auto animate-slideIn">
+                <div className="flex-1 glass-card p-6 overflow-hidden animate-slideIn flex flex-col shadow-card">
                     {currentGroup ? (
-                        <div className="animate-fadeIn">
-                            <div className="flex justify-between items-start mb-8 pb-6 border-b border-gray-200 dark:border-gray-700">
-                                <div>
-                                    <br></br>
-                                    <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">&nbsp;&nbsp;&nbsp;&nbsp;{currentGroup.name}</h2>
-                                    <div className="text-gray-500 dark:text-gray-400 flex items-center text-sm">
-                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<Users className="w-4 h-4 mr-2" /> {currentGroup.members.length} members • {currentGroup.description || 'No description'}
+                        <div className="animate-fadeIn h-full flex flex-col">
+                            {/* ── Refined Premium Group Header ── */}
+                            <div className="mb-6 shrink-0 border-b border-gray-200/60 dark:border-gray-800/60 pb-2">
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                    <div>
+                                        <div className="inline-flex items-center text-[10px] font-bold tracking-widest uppercase mb-2 text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 px-2 py-0.5 rounded-full border border-teal-100 dark:border-teal-800/50">
+                                            <Activity className="w-3 h-3 mr-1" />
+                                            Active Workspace
+                                        </div>
+                                        <h2 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white mb-1.5 flex items-center">
+                                            {currentGroup.name}
+                                        </h2>
+                                        <div className="flex items-center text-gray-500 dark:text-gray-400 text-xs font-medium">
+                                            <Users className="w-3.5 h-3.5 mr-1.5 opacity-70" />
+                                            <span className="mr-3">{currentGroup.members.length} Members</span>
+                                            <span className="flex items-center text-gray-400 dark:text-gray-500">
+                                                <FileText className="w-3.5 h-3.5 mr-1.5 opacity-70" />
+                                                {currentGroup.description || 'No description provided'}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div>
-                                    <div className="flex flex-wrap gap-3 mt-4 items-center">
-                                        <button onClick={refreshCurrentGroup} disabled={isRefreshing} className="btn-outline flex items-center hover-lift border-indigo-200 text-indigo-600 dark:border-indigo-800 dark:text-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed">
-                                            <Activity className={`w-5 h-5 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} /> {isRefreshing ? 'Refreshing...' : 'Refresh'}
+
+                                    <div className="flex flex-wrap gap-3 items-center">
+                                        <button onClick={refreshCurrentGroup} disabled={isRefreshing} className="btn-outline flex items-center text-sm py-2 px-4 font-medium transition-colors">
+                                            <Activity className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} /> {isRefreshing ? 'Syncing...' : 'Sync'}
                                         </button>
 
-                                        <div className="relative">
-                                            <button
-                                                onClick={() => setShowExportMenu(!showExportMenu)}
-                                                className="btn-outline flex items-center hover-lift border-teal-200 text-teal-600 dark:border-teal-800 dark:text-teal-400"
-                                            >
-                                                <Download className="w-5 h-5 mr-2" /> Export
+                                        <div className="relative" ref={exportMenuRef}>
+                                            <button onClick={() => setShowExportMenu(!showExportMenu)} className="btn-outline flex items-center text-sm py-2 px-4 font-medium transition-colors">
+                                                <Download className="w-4 h-4 mr-2" /> Export
                                             </button>
-
                                             {showExportMenu && (
-                                                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-slideDown">
+                                                <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-card border border-gray-100 dark:border-gray-800 z-50 overflow-hidden animate-slideDown">
                                                     <div className="py-1">
-                                                        <button
-                                                            onClick={exportPDF}
-                                                            className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center transition-colors"
-                                                        >
-                                                            <FileText className="w-4 h-4 mr-3 text-red-500" />
-                                                            Download PDF
+                                                        <button onClick={exportPDF} className="w-full text-left px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center transition-colors">
+                                                            <FileText className="w-3.5 h-3.5 mr-2 text-red-500" /> PDF Report
                                                         </button>
-                                                        <button
-                                                            onClick={exportCSV}
-                                                            className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center transition-colors border-t border-gray-100 dark:border-gray-700/50"
-                                                        >
-                                                            <FileSpreadsheet className="w-4 h-4 mr-3 text-green-500" />
-                                                            Download CSV
+                                                        <button onClick={exportCSV} className="w-full text-left px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center transition-colors border-t border-gray-100 dark:border-gray-700/50">
+                                                            <FileSpreadsheet className="w-3.5 h-3.5 mr-2 text-green-500" /> CSV Data
                                                         </button>
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
 
-
-                                        <button onClick={() => setShowAddMemberModal(true)} className="btn-outline flex items-center hover-lift">
-                                            <UserPlus className="w-5 h-5 mr-2" /> Add Member
+                                        <button onClick={() => setShowAddMemberModal(true)} className="btn-outline flex items-center text-sm py-2 px-4 font-medium transition-colors">
+                                            <UserPlus className="w-4 h-4 mr-2" /> Invite
                                         </button>
-                                        <button onClick={() => setShowExpenseModal(true)} className="btn-primary flex items-center hover-lift">
-                                            <Plus className="w-5 h-5 mr-2" /> Add Expense
+                                        <button onClick={() => setShowExpenseModal(true)} className="bg-gray-900 hover:bg-black dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900 text-white font-semibold py-2 px-5 rounded-xl transition-all duration-300 shadow-md flex items-center active:scale-95 text-sm">
+                                            <Plus className="w-4 h-4 mr-1.5" /> New Expense
                                         </button>
                                         {(currentGroup.creator === user?._id || currentGroup.admins?.includes(user?._id)) && (
-                                            <button onClick={() => setShowAdminConsole(true)} className="btn-outline flex items-center hover-lift border-orange-200 text-orange-600 dark:border-orange-800 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/10">
-                                                <Shield className="w-5 h-5 mr-2" /> Admin Controls
+                                            <button onClick={() => setShowAdminConsole(true)} className="btn-outline flex items-center text-sm py-2 px-4 font-medium border-orange-200/50 text-orange-600 dark:border-orange-900/30 dark:text-orange-500 bg-orange-50/50 dark:bg-orange-900/10 ml-1 transition-colors">
+                                                <Shield className="w-4 h-4 mr-2" /> Admin
                                             </button>
                                         )}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* ── Top Row: Transactions | Settlements + Smart Insights ── */}
-                            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-                                {/* Recent Transactions */}
-                                <div className="xl:col-span-2 space-y-6">
-                                    <div className="card p-6 neon-border">
-                                        <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-6 flex items-center text-lg">
-                                            <Activity className="w-6 h-6 mr-3 text-primary-500" />
-                                            Recent Transactions
-                                        </h3>
-                                        <ExpenseList expenses={expenses.filter(e => !e.title?.startsWith('Settlement:'))} onDelete={handleDeleteExpense} currentGroup={currentGroup} />
+                            {/* ── Dashboard Content ── */}
+                            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-5 pb-10">
+
+                                {/* ── Top Row: Transactions | Settlements + Smart Insights ── */}
+                                <div className="grid grid-cols-1 xl:grid-cols-5 gap-6 mb-6">
+                                    {/* Recent Transactions */}
+                                    <div className="xl:col-span-3 flex flex-col">
+                                        <div className="card p-6 flex-1 flex flex-col neon-border">
+                                            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center tracking-tight uppercase tracking-wide shrink-0">
+                                                <Activity className="w-4 h-4 mr-2 text-gray-400" />
+                                                Recent Transactions
+                                            </h3>
+                                            <div className="flex-1 overflow-y-auto min-h-0 pr-2 custom-scrollbar pb-2">
+                                                <ExpenseList expenses={expenses.filter(e => !e.title?.startsWith('Settlement:'))} onDelete={handleDeleteExpense} currentGroup={currentGroup} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Right Column: Settlements + Smart Insights */}
+                                    <div className="xl:col-span-2 flex flex-col space-y-6">
+                                        {currentGroup.members.length > 1 && (
+                                            <div className="shrink-0 space-y-6">
+                                                <div className="card p-6 shrink-0">
+                                                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center uppercase tracking-wider">
+                                                        <IndianRupee className="w-4 h-4 mr-2 text-gray-400" />
+                                                        Settlements
+                                                    </h3>
+                                                    <SettlementView balances={balances} settlementRequests={settlementRequests} groupId={currentGroup._id} />
+                                                </div>
+
+                                                <SettlementHistory expenses={expenses} />
+                                            </div>
+                                        )}
+
+                                        {/* 💡 Smart Insights */}
+                                        <SmartInsights key={`insights-${refreshKey}`} groupId={currentGroup._id} className="flex-1" />
                                     </div>
                                 </div>
 
-                                {/* Right Column: Settlements + Smart Insights */}
-                                <div className="space-y-6">
-                                    {currentGroup.members.length > 1 && (
-                                        <>
-                                            <div className="card p-6 neon-border border-indigo-500/30">
-                                                <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-6 flex items-center text-lg">
-                                                    <IndianRupee className="w-6 h-6 mr-3 text-indigo-500" />
-                                                    Settlements
-                                                </h3>
-                                                <SettlementView balances={balances} settlementRequests={settlementRequests} groupId={currentGroup._id} />
-                                            </div>
-
-                                            <SettlementHistory expenses={expenses} />
-                                        </>
-                                    )}
-
-                                    {/* 💡 Smart Insights */}
-                                    <SmartInsights key={`insights-${refreshKey}`} groupId={currentGroup._id} />
+                                {/* ── Bottom Row: Advanced Analytics Dashboard ── */}
+                                <div className="mt-8">
+                                    <AnalyticsDashboard key={`analytics-${refreshKey}`} groupId={currentGroup._id} />
                                 </div>
-                            </div>
-
-                            {/* ── Bottom Row: Advanced Analytics Dashboard ── */}
-                            <div className="card p-6 neon-border border-purple-500/30">
-                                <AnalyticsDashboard key={`analytics-${refreshKey}`} groupId={currentGroup._id} />
                             </div>
                         </div>
                     ) : (
