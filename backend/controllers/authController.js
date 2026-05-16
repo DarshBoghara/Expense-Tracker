@@ -260,7 +260,7 @@ const googleLogin = async (req, res) => {
     try {
         const ticket = await client.verifyIdToken({
             idToken: credential,
-            audience: process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID', 
+            audience: process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID',
             // NOTE: Replace 'YOUR_CLIENT_ID' or set GOOGLE_CLIENT_ID in your .env file
         });
         const payload = ticket.getPayload();
@@ -305,10 +305,10 @@ const updateAvatar = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'User not found.' });
         }
-        
+
         user.avatar = avatar;
         await user.save({ validateBeforeSave: false });
-        
+
         res.json({
             _id: user._id,
             name: user.name,

@@ -1,15 +1,6 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // true for 465, false for other ports
-  family: 4, // Force IPv4
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
  * Sends a 6-digit OTP to the given email address.
@@ -17,9 +8,9 @@ const transporter = nodemailer.createTransport({
  * @param {string} otp - 6 digit OTP code
  */
 const sendOTPEmail = async (to, otp) => {
-  const mailOptions = {
-    from: `"FriendExpense Security" <${process.env.EMAIL_USER}>`,
-    to,
+  const { error } = await resend.emails.send({
+    from: 'FriendExpense <onboarding@resend.dev>',
+    to: [to],
     subject: '🔐 Your FriendExpense Login OTP',
     html: `
             <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 520px; margin: 0 auto; background: #0f172a; border-radius: 16px; overflow: hidden;">
@@ -45,9 +36,11 @@ const sendOTPEmail = async (to, otp) => {
                 </div>
             </div>
         `,
-  };
+  });
 
-  await transporter.sendMail(mailOptions);
+  if (error) {
+    throw new Error(error.message);
+  }
 };
 
 
