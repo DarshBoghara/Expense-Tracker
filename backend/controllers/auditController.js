@@ -134,11 +134,39 @@ exports.getGroupLogStats = async (req, res) => {
             { $project: { _id: 1, count: 1, totalSpent: 1, name: '$user.name', email: '$user.email', avatar: '$user.avatar' } }
         ]);
 
+        // --- NEW ADVANCED AI METRICS ---
+        const totalMembers = group.members ? group.members.length : 0;
+
+        const totalExpensesCount = await Expense.countDocuments({ 
+            group: new mongoose.Types.ObjectId(groupId),
+            title: { $not: { $regex: '^Settlement:' } }
+        });
+
+        const deletedExpensesCount = await AuditLog.countDocuments({ 
+            groupId, 
+            $or: [{ actionType: 'expense_deleted' }, { entityType: 'delete_request' }]
+        });
+        
+        const totalVolumeData = await Expense.aggregate([
+            { 
+                $match: { 
+                    group: new mongoose.Types.ObjectId(groupId), 
+                    title: { $not: { $regex: '^Settlement:' } }
+                } 
+            },
+            { $group: { _id: null, totalAmount: { $sum: '$amount' } } }
+        ]);
+        const totalVolumeEver = totalVolumeData.length > 0 ? totalVolumeData[0].totalAmount : 0;
+
         res.json({
             expensesThisMonth,
             settlementApprovals,
             suspiciousEdits,
-            mostActiveMembers
+            mostActiveMembers,
+            totalMembers,
+            totalExpensesCount,
+            deletedExpensesCount,
+            totalVolumeEver
         });
     } catch (error) {
         console.error('Error fetching log stats:', error);
