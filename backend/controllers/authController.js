@@ -166,7 +166,7 @@ const changePassword = async (req, res) => {
 };
 
 const { OAuth2Client } = require('google-auth-library');
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ─── Google Login ────────────────────────────────────────────────────────────
 const googleLogin = async (req, res) => {
@@ -174,8 +174,7 @@ const googleLogin = async (req, res) => {
     try {
         const ticket = await client.verifyIdToken({
             idToken: credential,
-            audience: process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID',
-            // NOTE: Replace 'YOUR_CLIENT_ID' or set GOOGLE_CLIENT_ID in your .env file
+            audience: process.env.GOOGLE_CLIENT_ID,
         });
         const payload = ticket.getPayload();
         const { email, name, picture } = payload;
