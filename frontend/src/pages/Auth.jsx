@@ -34,7 +34,11 @@ const Auth = () => {
                 setPassword('');
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Authentication failed. Please try again.');
+            if (!err.response) {
+                setError('Network error: Unable to reach the backend server. Is it running?');
+            } else {
+                setError(err.response?.data?.message || 'Authentication failed. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
@@ -47,7 +51,11 @@ const Auth = () => {
             await googleLogin(credentialResponse.credential);
             navigate('/');
         } catch (err) {
-            setError(err.response?.data?.message || 'Google authentication failed.');
+            if (!err.response) {
+                setError('Network error: Unable to reach the backend server. Is it running?');
+            } else {
+                setError(err.response?.data?.message || 'Google authentication failed.');
+            }
         } finally {
             setLoading(false);
         }

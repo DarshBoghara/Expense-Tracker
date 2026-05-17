@@ -15,7 +15,7 @@ const Sidebar = ({ currentGroup, setCurrentGroup }) => {
     const fetchGroups = async () => {
         try {
             const token = localStorage.getItem('token');
-            const { data } = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/groups`, {
+            const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/groups`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setGroups(data);
@@ -46,7 +46,7 @@ const Sidebar = ({ currentGroup, setCurrentGroup }) => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
-            const { data } = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/groups`,
+            const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/groups`,
                 { name: newGroupName, description: newGroupDesc },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -65,7 +65,7 @@ const Sidebar = ({ currentGroup, setCurrentGroup }) => {
         if (!window.confirm("Are you sure you want to leave this group?")) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/groups/${groupId}/leave`, {}, {
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/groups/${groupId}/leave`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (currentGroup && currentGroup._id === groupId) {

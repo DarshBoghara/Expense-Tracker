@@ -18,7 +18,7 @@ const AdminConsole = ({ groupId, onClose }) => {
             const isFiltering = filter.actionType || filter.entityType;
             const endpoint = isFiltering ? `/api/audit-logs/${groupId}/filter` : `/api/audit-logs/${groupId}`;
             
-            const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${endpoint}`, {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}${endpoint}`, {
                 headers: { Authorization: `Bearer ${token}` },
                 params: isFiltering ? filter : {}
             });
@@ -31,7 +31,7 @@ const AdminConsole = ({ groupId, onClose }) => {
     const fetchStats = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/audit-logs/stats/${groupId}`, {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/audit-logs/stats/${groupId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setStats(res.data);
@@ -66,7 +66,7 @@ const AdminConsole = ({ groupId, onClose }) => {
     const handleExport = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/audit-logs/export/${groupId}`, {
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/audit-logs/export/${groupId}`, {
                 headers: { Authorization: `Bearer ${token}` },
                 responseType: 'blob',
             });

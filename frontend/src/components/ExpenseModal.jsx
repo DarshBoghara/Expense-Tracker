@@ -22,7 +22,7 @@ const ExpenseModal = ({ group, onClose, setExpenses, setBalances }) => {
 
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/expenses`,
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/expenses`,
                 { title, amount, category, groupId: group._id, splits, splitType, paidBy },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

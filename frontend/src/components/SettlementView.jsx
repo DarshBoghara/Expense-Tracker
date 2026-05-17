@@ -23,7 +23,7 @@ const SettlementView = ({ balances, settlementRequests = [], groupId }) => {
         setError('');
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/settlements`, {
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/settlements`, {
                 groupId,
                 receiverId: selectedSettlement.to._id,
                 amount: selectedSettlement.amount,
@@ -42,7 +42,7 @@ const SettlementView = ({ balances, settlementRequests = [], groupId }) => {
     const handleAcceptRequest = async (requestId) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/settlements/${requestId}/accept`, {}, {
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/settlements/${requestId}/accept`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
         } catch (err) {
@@ -54,7 +54,7 @@ const SettlementView = ({ balances, settlementRequests = [], groupId }) => {
         if (!window.confirm("Are you sure you want to reject this settlement request?")) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/settlements/${requestId}/reject`, {}, {
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/settlements/${requestId}/reject`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
         } catch (err) {

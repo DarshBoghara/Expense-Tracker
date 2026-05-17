@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { UserPlus, Search, X, CheckCircle, Loader2, Users, ShieldCheck, Mail, User } from 'lucide-react';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API = import.meta.env.VITE_API_URL;
 
 const AddMemberModal = ({ group, onClose, onMemberAdded }) => {
     const [query, setQuery] = useState('');

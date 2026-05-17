@@ -7,7 +7,7 @@ import {
     PieChart, Pie, Cell
 } from 'recharts';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API = import.meta.env.VITE_API_URL;
 const COLORS = ['#14b8a6', '#6366f1', '#f43f5e', '#f59e0b', '#8b5cf6'];
 
 // ── Shared tooltip style ───────────────────────────────────

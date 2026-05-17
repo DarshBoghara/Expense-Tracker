@@ -62,8 +62,8 @@ const Dashboard = () => {
             try {
                 const token = localStorage.getItem('token');
                 const [invRes, delReqRes] = await Promise.all([
-                    axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/invitations`, { headers: { Authorization: `Bearer ${token}` } }),
-                    axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/delete-requests/pending`, { headers: { Authorization: `Bearer ${token}` } })
+                    axios.get(`${import.meta.env.VITE_API_URL}/api/invitations`, { headers: { Authorization: `Bearer ${token}` } }),
+                    axios.get(`${import.meta.env.VITE_API_URL}/api/delete-requests/pending`, { headers: { Authorization: `Bearer ${token}` } })
                 ]);
 
                 const inviteNotifs = invRes.data.map(inv => ({
@@ -90,7 +90,7 @@ const Dashboard = () => {
     const handleAcceptDeleteReq = async (id) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/delete-requests/${id}/accept`, {}, { headers: { Authorization: `Bearer ${token}` } });
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/delete-requests/${id}/accept`, {}, { headers: { Authorization: `Bearer ${token}` } });
             setNotifications(prev => prev.filter(n => n.delReqId !== id));
         } catch (error) { alert("Failed to accept"); }
     };
@@ -98,7 +98,7 @@ const Dashboard = () => {
     const handleRejectDeleteReq = async (id) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/delete-requests/${id}/reject`, {}, { headers: { Authorization: `Bearer ${token}` } });
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/delete-requests/${id}/reject`, {}, { headers: { Authorization: `Bearer ${token}` } });
             setNotifications(prev => prev.filter(n => n.delReqId !== id));
         } catch (error) { alert("Failed to reject"); }
     };
@@ -149,7 +149,7 @@ const Dashboard = () => {
     const handleAcceptInvite = async (inviteId) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/invitations/${inviteId}/accept`, {}, {
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/invitations/${inviteId}/accept`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setNotifications(prev => prev.filter(n => n.inviteId !== inviteId));
@@ -162,7 +162,7 @@ const Dashboard = () => {
     const handleRejectInvite = async (inviteId) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/invitations/${inviteId}/reject`, {}, {
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/invitations/${inviteId}/reject`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setNotifications(prev => prev.filter(n => n.inviteId !== inviteId));
@@ -183,7 +183,7 @@ const Dashboard = () => {
         setIsRefreshing(true);
         try {
             const token = localStorage.getItem('token');
-            const { data } = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/groups/${currentGroup._id}`, {
+            const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/groups/${currentGroup._id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setCurrentGroup(data);
@@ -201,13 +201,13 @@ const Dashboard = () => {
         const fetchGroupData = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const { data } = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/expenses/group/${currentGroup._id}`, {
+                const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/expenses/group/${currentGroup._id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setExpenses(data.expenses);
                 setBalances(data.balances);
 
-                const settlementsRes = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/settlements/group/${currentGroup._id}`, {
+                const settlementsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/settlements/group/${currentGroup._id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setSettlementRequests(settlementsRes.data);
@@ -342,7 +342,7 @@ const Dashboard = () => {
         if (!window.confirm("Are you sure you want to leave this group?")) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/groups/${currentGroup._id}/leave`, {}, {
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/groups/${currentGroup._id}/leave`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setCurrentGroup(null);
@@ -356,7 +356,7 @@ const Dashboard = () => {
     const handleDeleteExpense = async (id) => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.delete(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/expenses/${id}`, {
+            const res = await axios.delete(`${import.meta.env.VITE_API_URL}/api/expenses/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.status === 202) {
