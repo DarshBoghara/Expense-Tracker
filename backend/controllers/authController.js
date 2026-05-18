@@ -177,6 +177,7 @@ const googleLogin = async (req, res) => {
             audience: process.env.GOOGLE_CLIENT_ID,
         });
         const payload = ticket.getPayload();
+        console.log('Google login payload:', payload);
         const { email, name, picture } = payload;
 
         let user = await User.findOne({ email });
@@ -185,7 +186,7 @@ const googleLogin = async (req, res) => {
             // Create a new user with a random password since they logged in via Google
             const randomPassword = crypto.randomBytes(16).toString('hex');
             user = await User.create({
-                name,
+                name: name || 'Google User',
                 email,
                 password: randomPassword,
                 avatar: picture || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
@@ -202,8 +203,8 @@ const googleLogin = async (req, res) => {
             token: generateToken(user._id),
         });
     } catch (error) {
-        console.error('Google login error:', error);
-        res.status(401).json({ message: 'Invalid Google token. Please configure your GOOGLE_CLIENT_ID.' });
+        console.error('Google login error detail:', error);
+        res.status(401).json({ message: error.message || 'Google login failed.' });
     }
 };
 
