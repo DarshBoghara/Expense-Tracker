@@ -16,7 +16,7 @@ import AdminConsole from '../components/AdminConsole';
 import { LogOut, Users, Plus, PieChart as PieChartIcon, Activity, IndianRupee, UserPlus, Bell, Sun, Moon, Download, FileText, FileSpreadsheet, Shield } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 const COLORS = ['#14b8a6', '#6366f1', '#f43f5e', '#f59e0b', '#8b5cf6'];
 
@@ -438,43 +438,140 @@ const Dashboard = () => {
     };
 
     const exportPDF = () => {
-        const doc = new jsPDF();
+        try {
+            const doc = new jsPDF();
 
-        doc.setFontSize(20);
-        doc.text(`${currentGroup.name} - Expense Report`, 14, 22);
+            // Premium Colors
+            const primaryColor = [20, 184, 166]; // Teal 500
+            const textColor = [55, 65, 81]; // Gray 700
+            const lightGray = [243, 244, 246]; // Gray 100
 
-        doc.setFontSize(11);
-        doc.setTextColor(100);
-        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+            // 1. Group Name & Header
+            doc.setFontSize(22);
+            doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.setFont("helvetica", "bold");
+            doc.text(`${currentGroup.name || 'Group'} - Expense Report`, 14, 22);
 
-        const tableColumn = ["Title", "Amount", "Category", "Paid By", "Date"];
-        const tableRows = expenses.map(e => [
-            e.title,
-            `Rs. ${e.amount}`,
-            e.category,
-            e.paidBy?.name || 'Unknown',
-            new Date(e.date).toLocaleDateString()
-        ]);
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 28);
 
-        doc.autoTable({
-            head: [tableColumn],
-            body: tableRows,
-            startY: 40,
-            theme: 'striped',
-            styles: { fontSize: 10, cellPadding: 3 },
-            headStyles: { fillColor: [20, 184, 166] }
-        });
+            // 2. Group Description
+            let currentY = 38;
+            doc.setFontSize(12);
+            doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+            doc.setFont("helvetica", "bold");
+            doc.text("Group Description", 14, currentY);
+            
+            currentY += 6;
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            const descriptionText = currentGroup.description || 'No description provided for this group.';
+            const splitDesc = doc.splitTextToSize(descriptionText, 180);
+            doc.text(splitDesc, 14, currentY);
+            currentY += splitDesc.length * 5 + 6;
 
-        const finalY = doc.lastAutoTable.finalY || 40;
-        doc.text('Balances Summary:', 14, finalY + 10);
-        let currentY = finalY + 20;
-        balances.forEach(b => {
-            doc.text(`${b.user.name}: ${b.balance > 0 ? "Owed Rs. " + b.balance : "Owes Rs. " + Math.abs(b.balance)}`, 14, currentY);
-            currentY += 8;
-        });
+            // 3. Group Members
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text("Members", 14, currentY);
+            
+            currentY += 6;
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            const memberNames = currentGroup.members ? currentGroup.members.map(m => m.name).join(', ') : 'Unknown';
+            const splitMembers = doc.splitTextToSize(memberNames, 180);
+            doc.text(splitMembers, 14, currentY);
+            currentY += splitMembers.length * 5 + 10;
 
-        doc.save(`${currentGroup.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_expenses.pdf`);
-        setShowExportMenu(false);
+            // Draw a separator line
+            doc.setDrawColor(200, 200, 200);
+            doc.line(14, currentY, 196, currentY);
+            currentY += 10;
+
+            // 4. Expenses Table
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.text("Expense Details", 14, currentY);
+            currentY += 6;
+
+            const tableColumn = ["Title", "Amount", "Category", "Paid By", "Date"];
+            // Include ALL expenses as requested by user
+            const allExpenses = expenses || [];
+            
+            const tableRows = allExpenses.map(e => [
+                e.title || 'Unknown',
+                `Rs. ${Number(e.amount || 0).toFixed(2)}`,
+                e.category || 'Unknown',
+                e.paidBy?.name || 'Unknown',
+                e.date ? new Date(e.date).toLocaleDateString() : 'Unknown'
+            ]);
+
+            autoTable(doc, {
+                head: [tableColumn],
+                body: tableRows,
+                startY: currentY,
+                theme: 'striped',
+                styles: { fontSize: 10, cellPadding: 4 },
+                headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold' },
+                alternateRowStyles: { fillColor: lightGray },
+                margin: { top: 10 }
+            });
+
+            const finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY : currentY + 10;
+
+            // 5. Balances Summary Table
+            let summaryY = finalY + 15;
+            if (summaryY > doc.internal.pageSize.getHeight() - 40) {
+                doc.addPage();
+                summaryY = 20;
+            }
+
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.text("Settlements & Balances", 14, summaryY);
+
+            const balanceCols = ["Who owes", "Whom", "Amount"];
+            const balanceRows = balances ? balances.map(b => [
+                b.from?.name || 'Unknown',
+                b.to?.name || 'Unknown',
+                `Rs. ${Number(b.amount || 0).toFixed(2)}`
+            ]) : [];
+
+            if (balanceRows.length > 0) {
+                autoTable(doc, {
+                    head: [balanceCols],
+                    body: balanceRows,
+                    startY: summaryY + 6,
+                    theme: 'grid',
+                    styles: { fontSize: 10, cellPadding: 4 },
+                    headStyles: { fillColor: [75, 85, 99], textColor: [255, 255, 255] }
+                });
+            } else {
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "italic");
+                doc.setTextColor(100, 100, 100);
+                doc.text("All settled up! No pending balances.", 14, summaryY + 8);
+            }
+
+            // Add page numbers safely
+            const pageCount = doc.internal && typeof doc.internal.getNumberOfPages === 'function' ? doc.internal.getNumberOfPages() : 1;
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+            }
+
+            doc.save(`${(currentGroup.name || 'group').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_expenses.pdf`);
+            setShowExportMenu(false);
+        } catch (error) {
+            console.error("PDF Export Error: ", error);
+            alert("Error exporting PDF: " + error.message);
+        }
     };
 
     // Prepare chart data
